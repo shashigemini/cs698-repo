@@ -2,7 +2,8 @@
 
 **Project**: Spiritual Q&A Platform  
 **Organization**: Non-Profit Spiritual Organization  
-**Last Updated**: February 15, 2026
+**Last Updated**: February 15, 2026  
+**Version**: 1.1
 
 ---
 
@@ -168,6 +169,8 @@ CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX idx_chat_sessions_created_at ON chat_sessions(created_at DESC);
 ```
 
+**Note**: Title is auto-generated from first 50 characters of first user message + "..."
+
 #### `chat_messages`
 ```sql
 CREATE TABLE chat_messages (
@@ -192,11 +195,14 @@ CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at);
       "document_id": "uuid",
       "title": "Book Title",
       "page": 42,
-      "paragraph_id": "p3"
+      "paragraph_id": "p3",
+      "relevance_score": 0.89
     }
   ],
   "retrieval_time_ms": 123,
-  "llm_time_ms": 456
+  "llm_time_ms": 456,
+  "total_chunks_retrieved": 5,
+  "model": "gpt-4.1-mini"
 }
 ```
 
@@ -209,19 +215,25 @@ CREATE TABLE documents (
     author VARCHAR(255),
     edition VARCHAR(100),
     file_path VARCHAR(1000) NOT NULL,
+    total_pages INT,
+    embedding_model VARCHAR(100) DEFAULT 'text-embedding-ada-002',
+    ingestion_status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_documents_logical_book_id ON documents(logical_book_id);
+CREATE INDEX idx_documents_ingestion_status ON documents(ingestion_status);
 ```
+
+**`ingestion_status` values**: `pending`, `processing`, `completed`, `failed`
 
 ### 3.2 Qdrant Collection
 
 **Collection Name**: `spiritual_docs`
 
 **Vector Configuration**:
-- Dimension: 1536 (OpenAI text-embedding-ada-002) or as per embedding model
+- Dimension: 1536 (OpenAI text-embedding-ada-002)
 - Distance: Cosine
 
 **Payload Schema**:
@@ -229,11 +241,13 @@ CREATE INDEX idx_documents_logical_book_id ON documents(logical_book_id);
 {
   "document_id": "uuid",
   "logical_book_id": "string",
+  "title": "Book Title",
   "page": 42,
   "paragraph_id": "p3",
   "chunk_id": "uuid",
   "text": "chunk content...",
-  "title": "Book Title"
+  "chunk_index": 0,
+  "total_chunks_in_paragraph": 2
 }
 ```
 
@@ -279,6 +293,9 @@ erDiagram
         string author
         string edition
         string file_path
+        int total_pages
+        string embedding_model
+        string ingestion_status
         timestamp created_at
         timestamp updated_at
     }
@@ -322,6 +339,9 @@ classDiagram
         +string author
         +string edition
         +string filePath
+        +int totalPages
+        +string embeddingModel
+        +string ingestionStatus
         +datetime createdAt
         +datetime updatedAt
     }
@@ -343,12 +363,17 @@ classDiagram
 
     class RAGService {
         +AnswerResult answerQuery(userId?, conversationId?, guestSessionId?, query)
-        +void ingestDocument(documentId)
+        +void ingestDocument(documentId, pdfPath)
+        +List~Chunk~ chunkDocument(pdfPath, chunkSize, overlap)
+        +List~Embedding~ embedChunks(chunks)
+        +void storeInQdrant(documentId, chunks, embeddings)
     }
 
     class AnswerResult {
         +string answerText
         +list~Citation~ citations
+        +float retrievalTimeMs
+        +float llmTimeMs
     }
 
     class Citation {
@@ -356,10 +381,22 @@ classDiagram
         +string title
         +int page
         +string paragraphId
+        +float relevanceScore
+    }
+
+    class Chunk {
+        +UUID chunkId
+        +UUID documentId
+        +string text
+        +int page
+        +string paragraphId
+        +dict metadata
     }
 
     class RateLimiter {
         +bool checkAnonAllowed(ip, guestSessionId)
+        +int getRemainingQueries(ip, guestSessionId)
+        +void recordQuery(ip, guestSessionId)
     }
 
     User "1" --> "many" ChatSession
@@ -368,6 +405,7 @@ classDiagram
     AuthService --> User
     AuthService --> TokenPair
     RAGService --> AnswerResult
+    RAGService --> Chunk
     RAGService --> Document
     RAGService --> ChatSession
     RAGService --> ChatMessage
@@ -408,10 +446,10 @@ classDiagram
 
 #### Guest Rate Limits
 - **Key**: `IP address + guest_session_id`
-- **Limit**: 10 queries per day (configurable)
+- **Limit**: 10 queries per 24-hour rolling window
 - **Backing Store**:
   - **MVP**: In-process dictionary (single instance)
-  - **Production**: Redis with TTL
+  - **Production**: Redis with TTL keys
 
 #### Authentication Rate Limits
 - **Login**: 5 attempts per 15 minutes per IP
@@ -434,20 +472,27 @@ All API errors return:
 {
   "error_code": "ENUM_VALUE",
   "message": "Human-readable message",
-  "details": null
+  "details": null | {}
 }
 ```
 
 **Standard Error Codes**:
-- `UNAUTHORIZED`: Missing or invalid JWT
-- `INVALID_CREDENTIALS`: Wrong email/password
-- `RATE_LIMIT_EXCEEDED`: Guest query limit reached
-- `VALIDATION_ERROR`: Invalid input
-- `INTERNAL_ERROR`: Server error
-- `EMAIL_ALREADY_EXISTS`: Registration conflict
-- `INVALID_REFRESH_TOKEN`: Expired/invalid refresh token
-- `RESOURCE_NOT_FOUND`: Conversation/document not found
-- `FORBIDDEN`: Insufficient permissions
+
+| Error Code | HTTP Status | Context | Example Details |
+|------------|-------------|---------|----------------|
+| `UNAUTHORIZED` | 401 | Missing or invalid JWT | `null` |
+| `INVALID_CREDENTIALS` | 401 | Wrong email/password (Auth) | `null` |
+| `RATE_LIMIT_EXCEEDED` | 429 | Guest query limit reached | `{"retry_after": 3600, "remaining": 0, "limit": 10}` |
+| `VALIDATION_ERROR` | 400 | Invalid input format | `{"field": "query", "issue": "too_long"}` |
+| `QUERY_TOO_SHORT` | 400 | Query < 1 character (RAG) | `{"min_length": 1}` |
+| `QUERY_TOO_LONG` | 400 | Query > 2000 characters (RAG) | `{"max_length": 2000, "provided": 2500}` |
+| `INTERNAL_ERROR` | 500 | Server error | `null` |
+| `EMAIL_ALREADY_EXISTS` | 400 | Registration conflict (Auth) | `null` |
+| `INVALID_REFRESH_TOKEN` | 401 | Expired/invalid refresh token (Auth) | `null` |
+| `CONVERSATION_NOT_FOUND` | 404 | Invalid conversation_id (RAG) | `{"conversation_id": "..."}` |
+| `FORBIDDEN` | 403 | Insufficient permissions | `{"required_role": "admin"}` |
+| `LLM_ERROR` | 503 | OpenAI API failure (RAG) | `{"retry": true, "error": "timeout"}` |
+| `RETRIEVAL_ERROR` | 503 | Qdrant query failure (RAG) | `{"retry": true}` |
 
 ### 4.5 HTTPS & Transport Security
 - **All traffic**: HTTPS only (TLS 1.2+)
@@ -472,6 +517,7 @@ All API errors return:
 | **RDBMS** | PostgreSQL 14+ | Structured data |
 | **Rate Limiting** | In-memory (MVP) → Redis | Guest rate limits |
 | **HTTP Client** | httpx | OpenAI API calls |
+| **PDF Processing** | PyPDF2 or pdfplumber | PDF text extraction |
 
 ### 5.2 Frontend
 
@@ -494,18 +540,42 @@ All API errors return:
 - Context window: ~8k tokens (verify with OpenAI docs)
 - Temperature: 0.7 (configurable)
 - Top-p: 0.9
+- Timeout: 30 seconds
+- Retry: Exponential backoff (3 retries)
+
+**Embedding Model**: `text-embedding-ada-002`
+- Dimensions: 1536
+- Cost: ~$0.0001 per 1k tokens
+
+**LlamaIndex Configuration**:
+- Index Type: VectorStoreIndex with Qdrant backend
+- Retrieval: top_k=5, similarity_threshold=0.7
+- Response Mode: compact
 
 **Prompt Template**:
 ```
-You are a spiritual guide assistant. Answer the user's question based ONLY on the provided context from our organization's texts. If the context doesn't contain enough information, say so.
+You are a knowledgeable spiritual guide assistant for [Organization Name]. 
+Your role is to provide accurate answers based STRICTLY on the provided context 
+from our organization's sacred texts and publications.
+
+Guidelines:
+1. Answer ONLY based on the provided context
+2. If the context doesn't contain sufficient information, say: "I don't have enough information in our texts to answer that question fully."
+3. Maintain a respectful, contemplative tone
+4. Do not speculate or add information not present in the context
+5. Reference specific passages when possible
 
 Context:
-{retrieved_chunks}
+{context_str}
 
-Question: {user_query}
+Question: {query_str}
 
 Answer:
 ```
+
+**Conversation History** (Authenticated users):
+- Last 5 message pairs (10 messages total)
+- Token budget: 2000 for history, 4000 for retrieved chunks, 1024 for response
 
 ---
 
@@ -519,10 +589,17 @@ Answer:
 - `RAGService`: LlamaIndex + Qdrant + OpenAI integration
 - `RateLimiter`: IP + guest_session_id tracking
 - `/api/chat/query` endpoint
+- Document ingestion pipeline
 
 **Behavior**:
-- **Guest**: Rate-limited, no history persistence
+- **Guest**: Rate-limited (10 queries/day), no history persistence
 - **Authenticated**: Full access, history saved to PostgreSQL
+
+**Document Chunking Strategy**:
+- Method: Sentence-based with token counting
+- Target chunk size: 500 tokens (~375 words)
+- Overlap: 50 tokens between consecutive chunks
+- Page boundaries tracked for citations
 
 **API**: See [Section 7.2](#72-post-apichatquery)
 
@@ -530,6 +607,7 @@ Answer:
 - RAG retrieval quality/doctrinal alignment
 - OpenAI rate limits or outages
 - Cost spikes from long queries
+- PDF parsing failures on scanned documents
 
 ---
 
@@ -704,6 +782,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
+**Field Validation**:
+- `query`: Required, string, 1-2000 characters
+- `conversation_id`: Optional UUID v4 (authenticated only)
+- `guest_session_id`: Required UUID v4 if no JWT (guest only)
+
 #### Request Body (Authenticated)
 ```json
 {
@@ -720,12 +803,25 @@ Authorization: Bearer <access_token>
   "citations": [
     {
       "document_id": "770e8400-e29b-41d4-a716-446655440000",
-      "title": "The Path of Light",
+      "title": "The Path of Light: Volume 1",
       "page": 42,
-      "paragraph_id": "p3"
+      "paragraph_id": "p3",
+      "relevance_score": 0.89
+    },
+    {
+      "document_id": "770e8400-e29b-41d4-a716-446655440000",
+      "title": "The Path of Light: Volume 1",
+      "page": 43,
+      "paragraph_id": "p1",
+      "relevance_score": 0.85
     }
   ],
-  "conversation_id": "660e8400-e29b-41d4-a716-446655440000"
+  "conversation_id": "660e8400-e29b-41d4-a716-446655440000",
+  "metadata": {
+    "retrieval_time_ms": 123,
+    "llm_time_ms": 456,
+    "total_chunks_retrieved": 5
+  }
 }
 ```
 
@@ -735,21 +831,35 @@ Authorization: Bearer <access_token>
 ```json
 {
   "error_code": "RATE_LIMIT_EXCEEDED",
-  "message": "Too many requests. Please try again later.",
+  "message": "You have reached your daily query limit. Please register for unlimited access.",
   "details": {
-    "retry_after": 3600
+    "retry_after": 3600,
+    "remaining_queries": 0,
+    "limit": 10
   }
 }
 ```
 
-**Validation Error** (400):
+**Query Too Long** (400):
 ```json
 {
-  "error_code": "VALIDATION_ERROR",
-  "message": "Query must be between 1 and 2000 characters.",
+  "error_code": "QUERY_TOO_LONG",
+  "message": "Query must be 2000 characters or less.",
   "details": {
-    "field": "query",
-    "provided_length": 2500
+    "max_length": 2000,
+    "provided_length": 2547
+  }
+}
+```
+
+**LLM Error** (503):
+```json
+{
+  "error_code": "LLM_ERROR",
+  "message": "Our AI service is temporarily unavailable. Please try again shortly.",
+  "details": {
+    "retry": true,
+    "error_type": "timeout"
   }
 }
 ```
@@ -870,21 +980,22 @@ flowchart TB
 | **LLM Model** | **gpt-4.1-mini** | Cost-effective, sufficient quality for MVP |
 | **Max Response Tokens** | **1024** | Balance between completeness and cost |
 | **Max Query Length** | **2000 characters** | Prevents abuse and cost spikes |
-| **Guest Query Limit** | **10 per day** | Encourages registration while allowing trial |
+| **Guest Query Limit** | **10 per 24-hour rolling window** | Encourages registration while allowing trial |
 | **Access Token TTL** | **15 minutes** | Security vs UX balance |
 | **Refresh Token TTL** | **7 days** | User convenience with rotation |
 | **Password Hashing** | **Argon2** | OWASP recommended, resistant to attacks |
 | **State Management** | **Riverpod or Bloc** | Both acceptable; team decides |
+| **Document Chunking** | **Sentence-based, 500 tokens, 50 overlap** | Better context preservation than fixed-size |
+| **Embedding Model** | **text-embedding-ada-002** | Proven quality, good ecosystem support |
+| **Conversation Title** | **Auto-generated from first 50 chars** | Simpler UX, no user input required |
 
 ### 9.2 Open Questions for Implementation
 
 | Question | Options | Recommendation |
 |----------|---------|----------------|
-| **Conversation Title Generation** | Manual user input vs auto-generated from first query | Auto-generate from first 50 chars of first query |
 | **Email Verification** | Required vs optional | Optional for MVP, add later |
-| **Document Chunking Strategy** | Fixed size vs sentence-based | Sentence-based with 500-token target |
-| **Embedding Model** | OpenAI ada-002 vs open-source | OpenAI ada-002 for simplicity |
 | **Observability** | Logging only vs full APM | Start with structured logging + basic metrics |
+| **PDF Parsing Library** | PyPDF2 vs pdfplumber | pdfplumber for better text extraction |
 
 ### 9.3 Future Enhancements (Post-MVP)
 
@@ -985,6 +1096,7 @@ cs698-repo/
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
+**Change Log**: Synced with Story 1 enhancements (enhanced schemas, RAG details, error codes)  
 **Approval**: Pending Team Review  
 **Next Review**: After MVP Completion
