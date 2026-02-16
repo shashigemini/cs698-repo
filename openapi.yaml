@@ -1,0 +1,922 @@
+openapi: 3.1.0
+info:
+  title: Spiritual Q&A Platform API
+  version: 1.0.0
+  description: |
+    REST API for a spiritual/philosophical Q&A application that provides answers based on proprietary texts using RAG.
+    
+    ## Features
+    - **Dual Access Modes**: Guest (rate-limited) and Authenticated (unlimited)
+    - **RAG-based Q&A**: Answers with citations from proprietary documents
+    - **JWT Authentication**: Secure access with token refresh
+    - **Cross-Platform**: Supports Web, iOS, and Android clients
+    
+    ## Authentication
+    - **Guest**: No authentication required, but rate-limited to 10 queries/day
+    - **Authenticated**: Register/login to get JWT tokens for unlimited access
+    - **Token Types**:
+      - Access Token: 15-minute TTL, used for API requests
+      - Refresh Token: 7-day TTL, used to obtain new access tokens
+    
+    ## Rate Limiting
+    - **Guest Users**: 10 queries per 24-hour rolling window (tracked by IP + guest_session_id)
+    - **Login Attempts**: 5 attempts per 15 minutes per IP
+    - **Registration**: 3 attempts per hour per IP
+    
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: https://staging-api.example.com
+    description: Staging server
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User registration, login, token refresh, and logout
+  - name: Chat
+    description: Q&A queries with RAG-based answers
+  - name: Health
+    description: System health and status checks
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Create a new user account with email and password.
+        
+        **Rate Limit**: 3 attempts per hour per IP
+        
+        **Password Requirements**:
+        - Minimum 8 characters
+        - Must include uppercase, lowercase, digit, and special character
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              valid:
+                summary: Valid registration
+                value:
+                  email: user@example.com
+                  password: SecurePass123!
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    user_id: 550e8400-e29b-41d4-a716-446655440000
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    expires_in: 900
+          headers:
+            Set-Cookie:
+              description: HttpOnly cookies for web clients (access_token, refresh_token)
+              schema:
+                type: string
+              example: access_token=eyJhbG...; HttpOnly; Secure; SameSite=Strict; Max-Age=900
+        '400':
+          description: Validation error or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                email_exists:
+                  summary: Email already registered
+                  value:
+                    error_code: EMAIL_ALREADY_EXISTS
+                    message: An account with this email already exists.
+                    details: null
+                validation_error:
+                  summary: Invalid input
+                  value:
+                    error_code: VALIDATION_ERROR
+                    message: Invalid email or password format.
+                    details:
+                      field: password
+                      issue: too_short
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rate_limit:
+                  summary: Too many registration attempts
+                  value:
+                    error_code: RATE_LIMIT_EXCEEDED
+                    message: Too many registration attempts. Please try again later.
+                    details:
+                      retry_after: 3600
+                      remaining: 0
+                      limit: 3
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: |
+        Authenticate user with email and password.
+        
+        **Rate Limit**: 5 attempts per 15 minutes per IP
+        
+        Returns JWT access and refresh tokens.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Valid login
+                value:
+                  email: user@example.com
+                  password: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    user_id: 550e8400-e29b-41d4-a716-446655440000
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    expires_in: 900
+          headers:
+            Set-Cookie:
+              description: HttpOnly cookies for web clients
+              schema:
+                type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_credentials:
+                  summary: Wrong email or password
+                  value:
+                    error_code: INVALID_CREDENTIALS
+                    message: Email or password is incorrect.
+                    details: null
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: |
+        Obtain a new access token using a valid refresh token.
+        
+        **Token Rotation**: Issues new refresh token and revokes the old one.
+        
+        **Web**: Reads refresh token from HttpOnly cookie
+        **Mobile**: Expects refresh token in request body
+      operationId: refreshToken
+      requestBody:
+        required: false
+        description: Required for mobile clients only (web uses HttpOnly cookie)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            examples:
+              mobile:
+                summary: Mobile client request
+                value:
+                  refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+              examples:
+                success:
+                  summary: New tokens issued
+                  value:
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    expires_in: 900
+          headers:
+            Set-Cookie:
+              description: Updated HttpOnly cookies for web clients
+              schema:
+                type: string
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_token:
+                  summary: Token invalid or revoked
+                  value:
+                    error_code: INVALID_REFRESH_TOKEN
+                    message: Refresh token is invalid or expired.
+                    details: null
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: |
+        Revoke the user's refresh token and clear session.
+        
+        **Required**: Valid access token in Authorization header
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+          headers:
+            Set-Cookie:
+              description: Clears HttpOnly cookies for web clients
+              schema:
+                type: string
+              example: access_token=; Max-Age=0
+        '401':
+          description: Unauthorized (invalid or missing token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/chat/query:
+    post:
+      tags:
+        - Chat
+      summary: Submit a query and get an AI-generated answer
+      description: |
+        Submit a natural language question and receive an answer based on proprietary spiritual texts.
+        
+        ## Modes
+        
+        ### Guest Mode
+        - No authentication required
+        - Must provide `guest_session_id` (UUID v4)
+        - Rate limited to 10 queries per 24 hours
+        - No conversation history saved
+        
+        ### Authenticated Mode
+        - Requires JWT access token
+        - Unlimited queries
+        - Conversation history persisted
+        - Can continue previous conversations with `conversation_id`
+        
+        ## Response
+        Returns an answer with citations to source documents (page numbers and relevance scores).
+      operationId: submitQuery
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          description: CSRF token for web clients using cookies
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              guest_query:
+                summary: Guest query (first time)
+                value:
+                  query: What is karma according to our texts?
+                  conversation_id: null
+                  guest_session_id: 550e8400-e29b-41d4-a716-446655440000
+              authenticated_query_new:
+                summary: Authenticated query (new conversation)
+                value:
+                  query: What is karma according to our texts?
+                  conversation_id: null
+                  guest_session_id: null
+              authenticated_query_continue:
+                summary: Authenticated query (continue conversation)
+                value:
+                  query: Can you explain more about the law of cause and effect?
+                  conversation_id: 660e8400-e29b-41d4-a716-446655440000
+                  guest_session_id: null
+      responses:
+        '200':
+          description: Query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                success:
+                  summary: Successful answer with citations
+                  value:
+                    answer: Karma, according to our spiritual texts, refers to the universal law of cause and effect. Every action, thought, and intention creates an energy that returns to us in kind. It is not merely about reward or punishment, but about learning and spiritual growth through the consequences of our choices.
+                    citations:
+                      - document_id: 770e8400-e29b-41d4-a716-446655440000
+                        title: The Path of Light - Volume 1
+                        page: 42
+                        paragraph_id: p3
+                        relevance_score: 0.89
+                      - document_id: 770e8400-e29b-41d4-a716-446655440000
+                        title: The Path of Light - Volume 1
+                        page: 43
+                        paragraph_id: p1
+                        relevance_score: 0.85
+                    conversation_id: 660e8400-e29b-41d4-a716-446655440000
+                    metadata:
+                      retrieval_time_ms: 123
+                      llm_time_ms: 456
+                      total_chunks_retrieved: 5
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                query_too_long:
+                  summary: Query exceeds max length
+                  value:
+                    error_code: QUERY_TOO_LONG
+                    message: Query must be 2000 characters or less.
+                    details:
+                      max_length: 2000
+                      provided_length: 2547
+                query_too_short:
+                  summary: Query too short
+                  value:
+                    error_code: QUERY_TOO_SHORT
+                    message: Query must be at least 1 character.
+                    details:
+                      min_length: 1
+                validation_error:
+                  summary: Invalid field format
+                  value:
+                    error_code: VALIDATION_ERROR
+                    message: Invalid request format.
+                    details:
+                      field: guest_session_id
+                      issue: invalid_uuid_format
+        '401':
+          description: Unauthorized (invalid or expired token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Invalid JWT token
+                  value:
+                    error_code: UNAUTHORIZED
+                    message: Invalid or expired access token.
+                    details: null
+        '403':
+          description: Forbidden (user cannot access conversation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  summary: Cannot access another user's conversation
+                  value:
+                    error_code: FORBIDDEN
+                    message: You do not have permission to access this conversation.
+                    details:
+                      conversation_id: 660e8400-e29b-41d4-a716-446655440000
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: Invalid conversation ID
+                  value:
+                    error_code: CONVERSATION_NOT_FOUND
+                    message: Conversation not found.
+                    details:
+                      conversation_id: 660e8400-e29b-41d4-a716-446655440000
+        '429':
+          description: Rate limit exceeded (guest users)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rate_limit:
+                  summary: Guest query limit reached
+                  value:
+                    error_code: RATE_LIMIT_EXCEEDED
+                    message: You have reached your daily query limit. Please register for unlimited access.
+                    details:
+                      retry_after: 3600
+                      remaining_queries: 0
+                      limit: 10
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal_error:
+                  summary: Unexpected server error
+                  value:
+                    error_code: INTERNAL_ERROR
+                    message: An unexpected error occurred. Please try again later.
+                    details: null
+        '503':
+          description: Service unavailable (LLM or retrieval error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                llm_error:
+                  summary: OpenAI API timeout
+                  value:
+                    error_code: LLM_ERROR
+                    message: Our AI service is temporarily unavailable. Please try again shortly.
+                    details:
+                      retry: true
+                      error_type: timeout
+                retrieval_error:
+                  summary: Qdrant query failure
+                  value:
+                    error_code: RETRIEVAL_ERROR
+                    message: Document retrieval service is temporarily unavailable.
+                    details:
+                      retry: true
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns the health status of the API and its dependencies
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All services healthy
+                  value:
+                    status: healthy
+                    timestamp: '2026-02-15T22:35:00Z'
+                    services:
+                      database: healthy
+                      qdrant: healthy
+                      openai: healthy
+                    version: 1.0.0
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  summary: Some services down
+                  value:
+                    status: unhealthy
+                    timestamp: '2026-02-15T22:35:00Z'
+                    services:
+                      database: healthy
+                      qdrant: unhealthy
+                      openai: healthy
+                    version: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained from `/auth/register` or `/auth/login`.
+        
+        **Format**: `Authorization: Bearer <access_token>`
+        
+        **TTL**: 15 minutes
+        
+        **Refresh**: Use `/auth/refresh` to obtain a new token before expiry
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Valid email address (RFC 5322)
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: |
+            Password requirements:
+            - Minimum 8 characters
+            - Must include uppercase letter
+            - Must include lowercase letter
+            - Must include digit
+            - Must include special character
+          example: SecurePass123!
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePass123!
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          description: |
+            Refresh token (required for mobile clients only).
+            Web clients send this automatically via HttpOnly cookie.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    AuthResponse:
+      type: object
+      required:
+        - user_id
+        - access_token
+        - refresh_token
+        - expires_in
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        access_token:
+          type: string
+          description: JWT access token (15-minute TTL)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          description: JWT refresh token (7-day TTL)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expires_in:
+          type: integer
+          description: Access token expiry time in seconds
+          example: 900
+
+    RefreshResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: New JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          description: New JWT refresh token (old token is revoked)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expires_in:
+          type: integer
+          description: New access token expiry time in seconds
+          example: 900
+
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Natural language question (1-2000 characters)
+          example: What is karma according to our texts?
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            UUID of existing conversation (authenticated users only).
+            - null: Start new conversation
+            - UUID: Continue existing conversation
+          example: 660e8400-e29b-41d4-a716-446655440000
+        guest_session_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            UUID for guest session tracking (guest users only).
+            - Required for guest users (no JWT)
+            - Must be null for authenticated users
+            - Generated client-side (UUID v4)
+            - Used for rate limiting
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - citations
+        - metadata
+      properties:
+        answer:
+          type: string
+          description: AI-generated answer based on retrieved context
+          example: Karma, according to our spiritual texts, refers to the universal law of cause and effect...
+        citations:
+          type: array
+          description: Source documents cited in the answer
+          items:
+            $ref: '#/components/schemas/Citation'
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            UUID of conversation (authenticated users only).
+            - Returned for authenticated users
+            - null for guest users
+          example: 660e8400-e29b-41d4-a716-446655440000
+        metadata:
+          $ref: '#/components/schemas/QueryMetadata'
+
+    Citation:
+      type: object
+      required:
+        - document_id
+        - title
+        - page
+        - paragraph_id
+        - relevance_score
+      properties:
+        document_id:
+          type: string
+          format: uuid
+          description: Unique document identifier
+          example: 770e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          description: Document title
+          example: The Path of Light - Volume 1
+        page:
+          type: integer
+          minimum: 1
+          description: Page number in source document
+          example: 42
+        paragraph_id:
+          type: string
+          description: Paragraph identifier within the page
+          example: p3
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Semantic similarity score (cosine distance)
+          example: 0.89
+
+    QueryMetadata:
+      type: object
+      required:
+        - retrieval_time_ms
+        - llm_time_ms
+        - total_chunks_retrieved
+      properties:
+        retrieval_time_ms:
+          type: integer
+          description: Time spent retrieving relevant chunks (milliseconds)
+          example: 123
+        llm_time_ms:
+          type: integer
+          description: Time spent generating answer with LLM (milliseconds)
+          example: 456
+        total_chunks_retrieved:
+          type: integer
+          description: Number of text chunks retrieved from vector DB
+          example: 5
+
+    ErrorResponse:
+      type: object
+      required:
+        - error_code
+        - message
+      properties:
+        error_code:
+          type: string
+          enum:
+            - UNAUTHORIZED
+            - INVALID_CREDENTIALS
+            - RATE_LIMIT_EXCEEDED
+            - VALIDATION_ERROR
+            - QUERY_TOO_SHORT
+            - QUERY_TOO_LONG
+            - INTERNAL_ERROR
+            - EMAIL_ALREADY_EXISTS
+            - INVALID_REFRESH_TOKEN
+            - CONVERSATION_NOT_FOUND
+            - FORBIDDEN
+            - LLM_ERROR
+            - RETRIEVAL_ERROR
+          description: Machine-readable error code
+          example: RATE_LIMIT_EXCEEDED
+        message:
+          type: string
+          description: Human-readable error message
+          example: You have reached your daily query limit. Please register for unlimited access.
+        details:
+          nullable: true
+          description: Additional error context (structure varies by error_code)
+          oneOf:
+            - $ref: '#/components/schemas/RateLimitDetails'
+            - $ref: '#/components/schemas/ValidationErrorDetails'
+            - $ref: '#/components/schemas/QueryLengthDetails'
+            - $ref: '#/components/schemas/NotFoundDetails'
+            - $ref: '#/components/schemas/LLMErrorDetails'
+            - type: 'null'
+
+    RateLimitDetails:
+      type: object
+      properties:
+        retry_after:
+          type: integer
+          description: Seconds until rate limit resets
+          example: 3600
+        remaining_queries:
+          type: integer
+          description: Remaining queries in current window
+          example: 0
+        limit:
+          type: integer
+          description: Maximum queries allowed in window
+          example: 10
+
+    ValidationErrorDetails:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Name of the invalid field
+          example: guest_session_id
+        issue:
+          type: string
+          description: Description of the validation issue
+          example: invalid_uuid_format
+
+    QueryLengthDetails:
+      type: object
+      properties:
+        max_length:
+          type: integer
+          description: Maximum allowed query length
+          example: 2000
+        provided_length:
+          type: integer
+          description: Actual query length provided
+          example: 2547
+        min_length:
+          type: integer
+          description: Minimum required query length
+          example: 1
+
+    NotFoundDetails:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: The conversation ID that was not found
+          example: 660e8400-e29b-41d4-a716-446655440000
+
+    LLMErrorDetails:
+      type: object
+      properties:
+        retry:
+          type: boolean
+          description: Whether the request can be retried
+          example: true
+        error_type:
+          type: string
+          description: Type of LLM error
+          example: timeout
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - services
+        - version
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - unhealthy
+          description: Overall service health status
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of health check
+          example: '2026-02-15T22:35:00Z'
+        services:
+          type: object
+          description: Health status of individual services
+          properties:
+            database:
+              type: string
+              enum:
+                - healthy
+                - unhealthy
+              example: healthy
+            qdrant:
+              type: string
+              enum:
+                - healthy
+                - unhealthy
+              example: healthy
+            openai:
+              type: string
+              enum:
+                - healthy
+                - unhealthy
+              example: healthy
+        version:
+          type: string
+          description: API version
+          example: 1.0.0
