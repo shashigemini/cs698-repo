@@ -1,0 +1,71 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/auth/data/repositories/mock_auth_repository.dart';
+
+void main() {
+  group('AuthRepository (Mock)', () {
+    late MockAuthRepository repository;
+
+    setUp(() {
+      repository = MockAuthRepository();
+    });
+
+    test('initial state is unauthenticated (null)', () {
+      expect(repository.currentUser, isNull);
+    });
+
+    test(
+      'login with valid credentials updates currentUser and emits state',
+      () async {
+        // Subscribe before the action, then perform the action.
+        final future = expectLater(
+          repository.authStateChanges,
+          emits('mock-user-id'),
+        );
+
+        await repository.login('test@example.com', 'password');
+        await future;
+        expect(repository.currentUser, 'mock-user-id');
+      },
+    );
+
+    test(
+      'login with invalid credentials throws Exception and state remains null',
+      () async {
+        expect(
+          () async =>
+              await repository.login('test@example.com', 'wrongpassword'),
+          throwsA(isA<Exception>()),
+        );
+
+        expect(repository.currentUser, isNull);
+      },
+    );
+
+    test(
+      'loginAnonymously updates currentUser to guest and emits state',
+      () async {
+        final future = expectLater(
+          repository.authStateChanges,
+          emits('guest-user-id'),
+        );
+
+        await repository.loginAnonymously();
+        await future;
+        expect(repository.currentUser, 'guest-user-id');
+      },
+    );
+
+    test('logout clears currentUser and emits null state', () async {
+      // First, log in
+      await repository.login('test@example.com', 'password');
+      expect(repository.currentUser, 'mock-user-id');
+
+      // Subscribe, then trigger logout.
+      final future = expectLater(repository.authStateChanges, emits(isNull));
+
+      await repository.logout();
+      await future;
+      expect(repository.currentUser, isNull);
+    });
+  });
+}
