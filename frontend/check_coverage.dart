@@ -3,18 +3,18 @@ import 'dart:io';
 void main() {
   final file = File('coverage/lcov.info');
   if (!file.existsSync()) {
-    print('No coverage file found.');
+    stderr.writeln('No coverage file found.');
     return;
   }
 
   final lines = file.readAsLinesSync();
   String? currentFile;
-  int linesFound = 0;
-  int linesHit = 0;
-  List<int> missingLines = [];
+  var linesFound = 0;
+  var linesHit = 0;
+  var missingLines = <int>[];
 
-  int totalFound = 0;
-  int totalHit = 0;
+  var totalFound = 0;
+  var totalHit = 0;
 
   for (final line in lines) {
     if (line.startsWith('SF:')) {
@@ -37,12 +37,13 @@ void main() {
             ? 100.0
             : (linesHit / linesFound) * 100;
         if (linesFound > 0 && percentage < 100) {
-          print(
-            '${percentage.toStringAsFixed(1)}% ($linesHit/$linesFound) - $currentFile',
+          stderr.writeln(
+            '${percentage.toStringAsFixed(1)}%'
+            ' ($linesHit/$linesFound) - $currentFile',
           );
           if (currentFile.contains('screen.dart') ||
               currentFile.contains('validators.dart')) {
-            print('  Missing: $missingLines');
+            stderr.writeln('  Missing: $missingLines');
           }
         }
         totalFound += linesFound;
@@ -58,7 +59,8 @@ void main() {
   final totalPercentage = totalFound == 0
       ? 100.0
       : (totalHit / totalFound) * 100;
-  print(
-    '\nOverall Coverage: ${totalPercentage.toStringAsFixed(1)}% ($totalHit/$totalFound lines)',
+  stderr.writeln(
+    '\nOverall Coverage: ${totalPercentage.toStringAsFixed(1)}%'
+    ' ($totalHit/$totalFound lines)',
   );
 }

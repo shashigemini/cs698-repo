@@ -112,7 +112,8 @@ UI Layer (Screens)
 StartupScreen: Initial loading screen with token validation
 AuthScreen: Login/Register with guest option
 ChatScreen: Main chat interface (guest and authenticated modes)
-ConversationHistoryScreen: List of past conversations (authenticated only)
+ConversationHistoryScreen: (Internal) Redirects to SettingsScreen history section
+SettingsScreen: User preferences, history management, and account deletion
 State Diagrams
 Authentication State Machine
 
@@ -252,6 +253,12 @@ Automatic retry for transient errors (503, timeout): Max 3 retries with exponent
 User-initiated retry for all other errors via "Retry" button
 Public Interfaces (Internal Flutter Contracts)
 Purpose: Stable Dart classes and methods that define the internal architecture of the Flutter app. These are the contracts between different layers of the client application.
+
+Conversation and Account Management (NEW)
+- `AuthRepository.deleteAccount()`: Permanent account and data removal.
+- `ChatRepository.getConversations()`: Fetch history for drawer and settings.
+- `ChatRepository.deleteConversation(id)`: Individual history pruning.
+- `ChatRepository.exportConversation(id)`: JSON/Markdown export for user data portability.
 
 StorageService (Platform Abstraction Layer)
 Module: lib/services/storage_service.dart

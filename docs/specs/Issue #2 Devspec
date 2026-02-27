@@ -449,6 +449,21 @@ class AuthService:
             - Idempotent: safe to call multiple times with same JTI
             - Access tokens cannot be revoked (rely on short TTL)
         """
+
+    def delete_account(
+        self,
+        user_id: UUID
+    ) -> None:
+        """
+        Permanently delete the user's account and all associated data.
+        
+        Args:
+            user_id: User UUID
+        
+        Contract:
+            - Transactional: rollback on any error
+            - Cascades to all user-related data (sessions, messages)
+        """
     
     def verify_access_token(
         self,

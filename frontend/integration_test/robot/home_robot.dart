@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class HomeRobot {
   final WidgetTester tester;
@@ -13,7 +14,11 @@ class HomeRobot {
   Finder get newConversationMenu => find.text('New Conversation');
   Finder get logoutMenu => find.byKey(const Key('logout_menu_item'));
   Finder get signInMenu => find.text('Sign In / Register');
+  Finder get settingsMenu => find.text('Account Settings');
   Finder get rateLimitBanner => find.byKey(const Key('rate_limit_banner'));
+  Finder get shareButton => find.byIcon(LucideIcons.share2);
+  Finder citationByText(String text) => find.textContaining(text);
+  Finder get citationBottomSheet => find.text('Scripture Verse');
 
   // Actions
   Future<void> enterMessage(String message) async {
@@ -46,6 +51,12 @@ class HomeRobot {
   Future<void> tapSignIn() async {
     await tester.ensureVisible(signInMenu);
     await tester.tap(signInMenu);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapSettings() async {
+    await tester.ensureVisible(settingsMenu);
+    await tester.tap(settingsMenu);
     await tester.pumpAndSettle();
   }
 

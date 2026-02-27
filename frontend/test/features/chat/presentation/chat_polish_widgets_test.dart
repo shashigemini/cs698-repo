@@ -10,7 +10,7 @@ import 'package:frontend/core/services/storage_service.dart';
 import 'package:frontend/core/services/storage_provider.dart';
 import '../../../helpers/crypto_mocks.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:frontend/features/auth/domain/models/token_pair.dart';
 import 'package:frontend/core/services/local_settings_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';

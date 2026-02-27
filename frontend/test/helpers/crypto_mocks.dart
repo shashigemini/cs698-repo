@@ -8,6 +8,11 @@ class MockCryptographyService extends Mock implements CryptographyService {}
 
 class MockSessionKeyStore extends Mock implements SessionKeyStore {}
 
+/// Registers required mocktail fallbacks for crypto types (Rule 3.2)
+void registerCryptoFallbackValues() {
+  registerFallbackValue(const <int>[]);
+}
+
 /// A helper that provides real but simple crypto for tests if needed.
 class FakeCryptographyService extends Fake implements CryptographyService {
   @override

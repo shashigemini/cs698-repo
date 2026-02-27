@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/main.dart' as app;
 import 'robot/auth_robot.dart';
 import 'robot/home_robot.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    debugPrint('Wiping secure storage for test isolation...');
+    debugPrint(
+      'Wiping secure storage & shared preferences for test isolation...',
+    );
     const storage = FlutterSecureStorage();
     await storage.deleteAll();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   });
 
   late AuthRobot authRobot;

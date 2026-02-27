@@ -56,7 +56,7 @@ flowchart LR
     subgraph Backend["Backend (FastAPI, Python)"]
         subgraph AuthLayer["Auth & Security"]
             AUTH_EPS["/Auth endpoints<br/>/auth/*"]
-            AU["AuthService<br/>(JWT/OAuth2 + password hashing)"]
+            AU["AuthService<br/>(JWT/OAuth2 + password hashing + deletion)"]
         end
 
         subgraph ChatLayer["Chat & RAG"]
@@ -121,6 +121,14 @@ flowchart LR
    - **Web**: HttpOnly cookies (access + refresh) + CSRF token in header
    - **Mobile**: flutter_secure_storage
 
+#### Account Deletion Flow
+1. **Request**: Flutter -> `DELETE /auth/account`
+2. **Backend**: 
+   - Verifies JWT
+   - Deletes user records from `users` (cascades to `chat_sessions`, `chat_messages`)
+   - Invalidates all active tokens
+3. **Response**: 200 OK -> Client clears local storage and navigates to Login
+
 #### Guest Chat Flow
 1. Flutter generates/stores `guest_session_id` (UUID v4)
 2. Sends query to `/api/chat/query` with `guest_session_id`, no JWT
@@ -134,6 +142,11 @@ flowchart LR
 3. RAGService processes query
 4. Backend persists session/messages to PostgreSQL
 5. Returns answer with `conversation_id`
+
+#### Conversation Management Flow
+1. **List**: `GET /api/chat/conversations` -> Returns metadata for history
+2. **Delete**: `DELETE /api/chat/conversations/{id}` -> Cascades to messages
+3. **Export**: `POST /api/chat/conversations/{id}` -> Returns markdown summary
 
 ---
 
@@ -498,7 +511,12 @@ All API errors return:
 - **All traffic**: HTTPS only (TLS 1.2+)
 - **Certificate**: Valid SSL/TLS certificate
 - **HSTS**: Enabled with max-age=31536000
+- **SSL Pinning**: Strict pinning implemented via `http_certificate_pinning`, verifying SHA-256 fingerprints on every request.
 - **Web**: CORS restricted to allowed origins
+
+### 4.6 Logging & Data Redaction (Zero-Log Policy)
+- **Scrubbing**: No passwords, JWTs, or API keys are written to logs.
+- **Mechanism**: Global `AppLogger.scrub()` utility sanitizes all network diagnostic data before persistence/output.
 
 ---
 

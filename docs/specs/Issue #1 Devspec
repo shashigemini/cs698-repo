@@ -265,6 +265,17 @@ Success Response (200):
     "chunks_retrieved": 5
   }
 }
+
+GET /api/chat/conversations
+Description: Returns a list of all conversations for the authenticated user.
+Authentication: Required
+Success Response (200): Array of Conversation objects
+
+DELETE /auth/account
+Description: Permanently delete the user's account and all associated data.
+Authentication: Required
+Success Response (200): { "message": "Account deleted successfully" }
+
 Error Responses:
 
 Validation Error (400):

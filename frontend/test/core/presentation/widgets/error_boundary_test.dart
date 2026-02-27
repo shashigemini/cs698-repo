@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/presentation/widgets/error_boundary.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 void main() {
   group('ErrorBoundary', () {
@@ -26,7 +26,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Something went wrong'), findsOneWidget);
-      expect(find.byIcon(LucideIcons.alertTriangle), findsOneWidget);
+      expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
     });
 
     testWidgets('Try Again button clears error', (tester) async {

@@ -67,4 +67,10 @@ class AuthRobot {
     await tester.tap(loginTab);
     await tester.pumpAndSettle();
   }
+
+  Future<void> login(String email, String password) async {
+    await enterEmail(email);
+    await enterPassword(password);
+    await tapLogin();
+  }
 }

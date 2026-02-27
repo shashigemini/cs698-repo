@@ -13,6 +13,7 @@ analyzer:
 
 linter:
   rules:
+    - avoid_print
     - always_declare_return_types
     - annotate_overrides
     - avoid_init_to_null

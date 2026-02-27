@@ -50,7 +50,9 @@ flutter run
 - [RAG Spec](./docs/specs/Issue%20#1%20Devspec)
 - [Auth Spec](./docs/specs/Issue%20#2%20Devspec)
 - [Flutter Spec](./docs/specs/Issue%20#3%20Devspec)
+- [Security Roadmap](./docs/SECURITY_ROADMAP.md)
 
 ---
+**Built according to POUR standards**
 
 **Built with ❤️ for spiritual seekers worldwide**

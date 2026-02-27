@@ -59,7 +59,15 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## 3. Flutter Testing Rules
 
-### 3.1 `pumpAndSettle` — #1 Test Killer
+### 3.1 Security Service Robustness
+Rule: Both configuration and initialization of `freerasp` must be wrapped in a `try-catch` block.
+- **Why**: `AndroidConfig` or `IOSConfig` can throw exceptions during instantiation (e.g., if env vars are missing/invalid) before `init()` is even called, causing the app to hang on start.
+
+### 3.2 Mocktail Custom Types
+Rule: Always use `registerFallbackValue()` in `setUpAll()` for any custom types used with `any()` matchers in `mocktail`.
+- **Why**: Missing fallbacks cause opaque errors during test execution when using `any()`.
+
+### 3.3 `pumpAndSettle` — #1 Test Killer
 
 Never use `pumpAndSettle()` with infinite animations (`_TypingIndicator`, `CircularProgressIndicator`, `LinearProgressIndicator`, `RepeatEffect`).
 
@@ -85,50 +93,62 @@ For streams, avoid `emitsInOrder` (blocks). Use `emits(finalState)`.
 
 ### 3.3 Widget Test Setup
 
+Rule: Always override `storageServiceProvider` with `MockStorageService` in unit/widget tests.
+- **Why**: `SecureStorageService` uses platform channels (SharedPreferences/Keychain) which throw `MissingPluginException` or hang in a non-app test environment.
+
 ```dart
 await tester.pumpWidget(
   ProviderScope(
     overrides: [
       authRepositoryProvider.overrideWithValue(mockAuthRepo),
       chatRepositoryProvider.overrideWithValue(mockChatRepo),
+      storageServiceProvider.overrideWithValue(MockStorageService()),
     ],
     child: MaterialApp(home: const ScreenUnderTest()),
   ),
 );
 ```
 
-### 3.4 Test Commands
+### 3.4 Handling Async Initialization
+
+Rule: If a Controller or Repository has an async delay in its `_init` or `build` (e.g., `Future.delayed` in mocks), call `await tester.pump(Duration)` in the test setup.
+- **Why**: Prevents "A Timer is still pending even after the widget tree was disposed" errors.
+- **Fix**: Match the pump duration to the simulated network delay (e.g., 600ms for a 500ms mock delay).
+
+```dart
+await tester.pump(); // Initial frame
+await tester.pump(const Duration(milliseconds: 600)); // Clear init timers
+```
+
+### 3.5 Test Commands
 
 ```bash
 flutter test                                                    # Widget tests
-flutter test test/path/to/file_test.dart                        # Single file
+flutter test test/features/chat/presentation/guest_flow_test.dart
 flutter test integration_test/app_test.dart -d windows          # Integration
 flutter test integration_test/app_test.dart -d windows --reporter expanded
 ```
 
-Integration tests **require** `-d windows` (or `-d <device_id>`). Parallel execution on Windows may cause resource locks (files/ports); prefer sequential runs for final verification.
+### 3.7 Integration Test Stability (Windows)
 
-### 3.5 Robot Pattern
-
-Use `AuthRobot`/`HomeRobot` from `integration_test/robot/` instead of raw finders:
-```dart
-final authRobot = AuthRobot(tester);
-await authRobot.enterEmail('test@example.com'); // Robot should tap field first for focus stability
-await authRobot.tapLogin();
-```
-
-### 3.6 MCP Testing
-
-- **Marionette**: AI-driven exploratory testing (not CI/CD)
-- **`integration_test`**: Primary tool for deterministic E2E tests.
-    - **Snackbar Races**: Always call `ScaffoldMessenger.of(context).clearSnackBars()` before `showSnackBar()`. In tests, snackbars queue, which can cause `find.text()` to find the *previous* snackbar if not cleared.
-    - **List Stability**: Use `ValueKey(item.id)` for items in `ListView.builder`. Without unique keys, the `WidgetTester` may fail to locate items correctly after deletions or search resets due to widget recycling.
-    - **Duplicate Key Collisions**: Avoid hardcoded keys like `Key('item_label')` inside repeating widgets. Even if the parent has a unique `ValueKey`, inner hardcoded keys will collide when multiple items exist, leading to state corruption and finder failures.
-    - **Robust Action Finders**: Use `find.descendant` with `of: find.byType(ListTile)` to target specific buttons (Export/Delete) belonging to a specific item.
+- **Focus First**: Always call `await tester.tap(finder)` before `await tester.enterText(finder, text)`.
+    - **Why**: On Windows, `enterText` can fail silently if the text field has lost focus after a previous interaction or navigation.
+- **Snackbar Races**: Always call `ScaffoldMessenger.of(context).clearSnackBars()` before `find.text()` or other UI finders.
+    - **Why**: Snackbars queue; `find.text()` might target an old, fading snackbar instead of the new one, or a snackbar might mask underlying elements.
+- **Sequential Execution**: Always run integration tests sequentially on Windows (`-d windows`) to avoid file system or debug port resource locks.
 
 ---
 
-## 4. Deprecated API Mapping
+## 4. Mock Logic & Boundaries
+
+- **Boundary Conditions**: Prefer `>=` over `>` for limit-based mock checks (e.g., rate limits).
+    - **Why**: Aligns with intuitive "limit of N" expectations. 
+    - **Consistency**: If the mock throws on the 4th query (count >= 3), the test loop MUST send 4 queries to verify the exception handling.
+- **Reset State**: Mock repositories must provide `reset()` methods for integration tests that span multiple states (e.g., guest to auth).
+
+---
+
+## 5. Deprecated API Mapping
 
 | Deprecated | Replacement | Since |
 |---|---|---|
@@ -176,6 +196,12 @@ class _MessageBubble extends StatelessWidget {
 ### Business-Specific Strings
 All domain text lives in `lib/core/constants/app_strings.dart`. Do NOT hardcode brand names, suggestions, or domain terms in widgets.
 
+### Storage Keys
+Rule: Always use `lowerCamelCase` for string constants used as storage keys.
+- **Why**: Consistency with the rest of the Dart codebase and lint requirements.
+- **BAD**: `static const guestQueryCount_key = 'count';`
+- **GOOD**: `static const guestQueryCountKey = 'count';`
+
 ---
 
 ## 7. Common Gotchas
@@ -202,3 +228,22 @@ If integration tests fail with "No element found" but the screen looks correct:
 3.  **Encoding Fix**: Convert `test_results.json` to UTF-8 before parsing if using standard Python `json.loads` without `utf-16le` support.
 4.  **Wait Strategy**: If `pumpAndSettle()` times out, use `await tester.pump(Duration(seconds: 1))` to wait for mock repo delays or snackbars to transition.
 5.  **Build Method Debugging**: If a list refuses to render correctly after a search/filter update, add `debugPrint` inside the `build()` method to inspect the filtered collection length and current state variables.
+
+---
+
+## 9. Standardized Test Log Collection & Live Tracing
+
+**WARNING**: DO NOT rely on raw PowerShell output redirection or arbitrary Python scripts to parse `test_results.json`. The logs on Windows are natively UTF-16LE, making external OS-level scripts brittle.
+
+**The Golden Standard for Execution**:
+*   To bypass Windows encoding completely and execute parsing safely in-memory, run tests using the dedicated Dart CLI script:
+    ```bash
+    dart run tool/run_integration_tests.dart
+    ```
+*   This script natively handles sequentially executing tests, parsing the `--reporter json` stdout, and avoiding terminal resource locks.
+
+**The Golden Standard for Live Tracing**:
+*   Instead of raw CLI dumping, prefer **MCP Integration**:
+    *   Use `mcp_dart-mcp-server_run_tests` natively for robust unit/widget testing.
+    *   For live visual/UI traces: Use `launch_app` in debug mode, then connect `mcp_marionette_connect` to interact (`take_screenshots`, `get_interactive_elements`, `get_logs`).
+*   In integration test files (`*_test.dart`), use `binding.takeScreenshot('name')` or `debugDumpApp()` for native layout tracking upon assertion failures.
