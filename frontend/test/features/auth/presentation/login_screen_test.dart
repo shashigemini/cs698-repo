@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:frontend/features/auth/presentation/login_screen.dart';
 import 'package:frontend/features/auth/domain/repositories/auth_repository.dart';
 import 'package:frontend/features/auth/data/providers/auth_provider.dart';
+import 'package:frontend/core/exceptions/app_exceptions.dart';
 
 // Mock the repository
 class MockAuthRepository extends Mock implements AuthRepository {}
@@ -38,7 +39,7 @@ void main() {
   testWidgets('Login shows error toast on invalid credentials', (tester) async {
     when(
       () => mockAuthRepository.login(any(), any()),
-    ).thenThrow(Exception('Invalid credentials'));
+    ).thenThrow(const AuthException('Invalid email or password'));
 
     await tester.pumpWidget(createSubject());
     await tester.enterText(

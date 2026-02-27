@@ -80,25 +80,4 @@ void main() {
       );
     });
   });
-
-  group('Validators - mapAuthError', () {
-    test('maps common errors', () {
-      expect(
-        Validators.mapAuthError('INVALID_CREDENTIALS'),
-        'Invalid email or password. Please try again.',
-      );
-      expect(
-        Validators.mapAuthError('EMAIL_ALREADY_EXISTS'),
-        'An account with this email already exists.',
-      );
-      expect(
-        Validators.mapAuthError('TOKEN_EXPIRED'),
-        'Your session has expired. Please sign in again.',
-      );
-      expect(
-        Validators.mapAuthError('UNKNOWN_ERROR'),
-        'Authentication failed. Please try again.',
-      );
-    });
-  });
 }

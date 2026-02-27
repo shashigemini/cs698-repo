@@ -8,7 +8,22 @@ import 'package:frontend/features/auth/data/repositories/mock_auth_repository.da
 import 'package:frontend/features/auth/presentation/login_screen.dart';
 import 'package:frontend/features/home/presentation/home_screen.dart';
 
+import 'package:frontend/core/services/storage_service.dart';
+import 'package:mocktail/mocktail.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend/core/services/local_settings_store.dart';
+import '../../helpers/crypto_mocks.dart';
+
+class MockStorage extends Mock implements StorageService {}
+
 class MockLoggedInAuthRepo extends MockAuthRepository {
+  MockLoggedInAuthRepo({
+    required super.storage,
+    required super.crypto,
+    required super.sessionKeys,
+  });
+
   @override
   String? get currentUser => 'test-user-id';
 
@@ -17,11 +32,21 @@ class MockLoggedInAuthRepo extends MockAuthRepository {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('Router redirects to Login if unauthenticated', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         authRepositoryProvider.overrideWithValue(
-          MockAuthRepository(),
+          MockAuthRepository(
+            storage: MockStorage(),
+            crypto: FakeCryptographyService(),
+            sessionKeys: MockSessionKeyStore(),
+          ),
         ), // Default is unauthenticated
       ],
     );
@@ -48,9 +73,17 @@ void main() {
   });
 
   testWidgets('Router redirects to Home if authenticated', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
-        authRepositoryProvider.overrideWithValue(MockLoggedInAuthRepo()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        authRepositoryProvider.overrideWithValue(
+          MockLoggedInAuthRepo(
+            storage: MockStorage(),
+            crypto: FakeCryptographyService(),
+            sessionKeys: MockSessionKeyStore(),
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);

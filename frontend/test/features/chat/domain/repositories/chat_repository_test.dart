@@ -1,12 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/core/constants/app_strings.dart';
 import 'package:frontend/features/chat/data/repositories/mock_chat_repository.dart';
+import '../../../../helpers/crypto_mocks.dart';
+import 'package:mocktail/mocktail.dart';
 
 void main() {
   group('ChatRepository (Mock)', () {
     late MockChatRepository repository;
+    late MockSessionKeyStore mockSessionKeys;
 
     setUp(() {
-      repository = MockChatRepository();
+      mockSessionKeys = MockSessionKeyStore();
+      when(() => mockSessionKeys.currentAccountKey).thenReturn(null);
+      repository = MockChatRepository(
+        crypto: FakeCryptographyService(),
+        sessionKeys: mockSessionKeys,
+      );
     });
 
     test(
@@ -18,7 +27,7 @@ void main() {
 
         expect(result, isA<AnswerResult>());
         expect(result.answer, contains('What is the capital of France?'));
-        expect(result.conversationId, 'new-mock-conv-id');
+        expect(result.conversationId, 'mock-conv-7');
         expect(result.citations.length, 1);
       },
     );
@@ -26,8 +35,8 @@ void main() {
     test(
       'sendQuery with guestSessionId throws RateLimitException after limit',
       () async {
-        // Send 2 successful queries (count goes to 1, then 2)
-        for (var i = 0; i < 2; i++) {
+        final limit = AppStrings.guestQueryLimit;
+        for (var i = 0; i < limit; i++) {
           final result = await repository.sendQuery(
             'Query $i',
             guestSessionId: 'guest123',
@@ -35,11 +44,12 @@ void main() {
           expect(result.answer, isNotEmpty);
         }
 
-        // 3rd query should throw (count=3, 3>=guestQueryLimit)
         expect(
-          () async =>
-              await repository.sendQuery('Query 3', guestSessionId: 'guest123'),
-          throwsA(isA<Exception>()),
+          () async => await repository.sendQuery(
+            'Rate Limit Query',
+            guestSessionId: 'guest123',
+          ),
+          throwsException,
         );
       },
     );

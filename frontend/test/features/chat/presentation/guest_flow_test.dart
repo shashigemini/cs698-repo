@@ -6,25 +6,55 @@ import 'package:frontend/features/auth/data/repositories/mock_auth_repository.da
 import 'package:frontend/features/chat/data/providers/chat_repository_provider.dart';
 import 'package:frontend/features/chat/data/repositories/mock_chat_repository.dart';
 import 'package:frontend/features/home/presentation/home_screen.dart';
+import 'package:frontend/core/constants/app_strings.dart';
+import 'package:frontend/core/services/storage_provider.dart';
+import 'package:frontend/core/services/mock_storage_service.dart';
+import 'package:frontend/core/services/local_settings_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend/features/auth/domain/models/token_pair.dart';
+import '../../../helpers/crypto_mocks.dart';
+import 'package:mocktail/mocktail.dart';
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(
+      TokenPair(
+        accessToken: '',
+        refreshToken: '',
+        accessExpiresAt: DateTime.now(),
+      ),
+    );
+  });
+
   late MockAuthRepository mockAuthRepo;
   late MockChatRepository mockChatRepo;
+  late MockStorageService mockStorage;
 
   setUp(() {
-    mockAuthRepo = MockAuthRepository();
+    SharedPreferences.setMockInitialValues({});
+    mockStorage = MockStorageService();
+
+    mockAuthRepo = MockAuthRepository(
+      storage: mockStorage,
+      crypto: FakeCryptographyService(),
+      sessionKeys: MockSessionKeyStore(),
+    );
     mockChatRepo = MockChatRepository();
   });
 
   /// Helper to pump the HomeScreen directly, bypassing GoRouter.
   Future<ProviderContainer> pumpHomeScreen(WidgetTester tester) async {
     // Pre-authenticate as guest so the HomeScreen renders.
-    mockAuthRepo.setUser('guest-user-id');
+    mockAuthRepo.setUser(AppStrings.guestUserId);
 
     final container = ProviderContainer(
       overrides: [
         authRepositoryProvider.overrideWithValue(mockAuthRepo),
         chatRepositoryProvider.overrideWithValue(mockChatRepo),
+        storageServiceProvider.overrideWithValue(mockStorage),
+        sharedPreferencesProvider.overrideWithValue(
+          await SharedPreferences.getInstance(),
+        ),
       ],
     );
 
@@ -36,7 +66,13 @@ void main() {
       ),
     );
 
-    await tester.pump(); // Initial frame
+    // Initial frame
+    await tester.pump();
+    // Wait for the async 500ms MockChatRepository load to finish initializing the controller
+    await tester.pump(const Duration(milliseconds: 600));
+
+    addTearDown(() => container.dispose());
+
     return container;
   }
 
@@ -85,10 +121,10 @@ void main() {
       await pumpHomeScreen(tester);
 
       // Enter text and send
-      await tester.enterText(
-        find.byKey(const Key('chat_input_field')),
-        'What is dharma?',
-      );
+      final inputFinder = find.byKey(const Key('chat_input_field'));
+      await tester.tap(inputFinder);
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.enterText(inputFinder, 'What is dharma?');
       await tester.tap(find.byKey(const Key('chat_send_button')));
       await tester.pump(); // Trigger send
 
@@ -118,23 +154,23 @@ void main() {
 
       await pumpHomeScreen(tester);
 
-      // Send 3 queries to exhaust the guest limit
+      // Send 3 queries to exhaust the guest limit.
       for (var i = 0; i < 3; i++) {
-        await tester.enterText(
-          find.byKey(const Key('chat_input_field')),
-          'Query $i',
-        );
+        final inputFinder = find.byKey(const Key('chat_input_field'));
+        await tester.tap(inputFinder);
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+        await tester.enterText(inputFinder, 'Query $i');
         await tester.tap(find.byKey(const Key('chat_send_button')));
         await tester.pump(); // Start send
         await tester.pump(const Duration(seconds: 2)); // Wait for response
         await tester.pump(); // Rebuild
       }
 
-      // 4th query should trigger rate limit
-      await tester.enterText(
-        find.byKey(const Key('chat_input_field')),
-        'Query 4',
-      );
+      // 4th query should trigger rate limit based on >= boundary rule
+      final inputFinder = find.byKey(const Key('chat_input_field'));
+      await tester.tap(inputFinder);
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.enterText(inputFinder, 'Query 4');
       await tester.tap(find.byKey(const Key('chat_send_button')));
       await tester.pump(); // Start send
       await tester.pump(const Duration(seconds: 2)); // Wait for error

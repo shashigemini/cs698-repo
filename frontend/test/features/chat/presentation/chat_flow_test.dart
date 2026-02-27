@@ -8,13 +8,53 @@ import 'package:frontend/features/chat/data/providers/chat_repository_provider.d
 import 'package:frontend/features/chat/data/repositories/mock_chat_repository.dart';
 import 'package:frontend/features/home/presentation/home_screen.dart';
 
+import 'package:frontend/core/services/storage_service.dart';
+import 'package:frontend/core/services/storage_provider.dart';
+import 'package:frontend/features/auth/domain/models/token_pair.dart';
+import '../../../helpers/crypto_mocks.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend/core/services/local_settings_store.dart';
+
+class MockStorage extends Mock implements StorageService {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(
+      TokenPair(
+        accessToken: '',
+        refreshToken: '',
+        accessExpiresAt: DateTime.now(),
+      ),
+    );
+  });
+
   late MockAuthRepository mockAuthRepo;
   late MockChatRepository mockChatRepo;
+  late MockStorage mockStorage;
 
-  setUp(() {
-    mockAuthRepo = MockAuthRepository();
-    mockChatRepo = MockChatRepository();
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    mockStorage = MockStorage();
+    // Stub the storage methods
+    when(() => mockStorage.saveTokens(any())).thenAnswer((_) async {});
+    when(() => mockStorage.deleteTokens()).thenAnswer((_) async {});
+    when(() => mockStorage.getTokens()).thenAnswer((_) async => null);
+    when(() => mockStorage.getCsrfToken()).thenAnswer((_) async => null);
+
+    final mockSessionKeys = MockSessionKeyStore();
+    when(() => mockSessionKeys.currentAccountKey).thenReturn(null);
+    final mockCrypto = FakeCryptographyService();
+
+    mockAuthRepo = MockAuthRepository(
+      storage: mockStorage,
+      crypto: mockCrypto,
+      sessionKeys: mockSessionKeys,
+    );
+    mockChatRepo = MockChatRepository(
+      crypto: mockCrypto,
+      sessionKeys: mockSessionKeys,
+    );
   });
 
   /// Helper to pump the HomeScreen directly as an authenticated user.
@@ -22,22 +62,22 @@ void main() {
     // Pre-authenticate as a real user (not guest).
     mockAuthRepo.setUser('testuser@example.com');
 
-    final container = ProviderContainer(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(mockAuthRepo),
-        chatRepositoryProvider.overrideWithValue(mockChatRepo),
-      ],
-    );
-
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(mockAuthRepo),
+          chatRepositoryProvider.overrideWithValue(mockChatRepo),
+          storageServiceProvider.overrideWithValue(mockStorage),
+          sharedPreferencesProvider.overrideWithValue(
+            await SharedPreferences.getInstance(),
+          ),
+        ],
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
 
     await tester.pump(); // Initial frame
-    return container;
+    return ProviderScope.containerOf(tester.element(find.byType(HomeScreen)));
   }
 
   group('Authenticated Chat Flow', () {
@@ -68,7 +108,14 @@ void main() {
       await tester.pump(); // Rebuild
 
       // Loading done; AI message visible
-      expect(container.read(chatControllerProvider).isLoading, false);
+      final finalState = container.read(chatControllerProvider);
+      debugPrint(
+        'TEST: finalState.isLoading=${finalState.isLoading}, messages=${finalState.messages.length}',
+      );
+      for (var m in finalState.messages) {
+        debugPrint('TEST: msg sender=${m.sender}, content=${m.content}');
+      }
+      expect(finalState.isLoading, false);
       expect(
         find.textContaining('This is a mocked AI response'),
         findsOneWidget,
