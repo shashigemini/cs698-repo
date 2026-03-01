@@ -17,6 +17,12 @@ We use **Argon2id** for high-entropy key derivation from user passwords.
 - **Conversation Keys**: Messages are encrypted using individual conversation-scoped keys, ensuring that even if one key is compromised, the entire history remains secure.
 - **AAD (Additional Authenticated Data)**: We bind ciphertexts to specific `conversation_id` and `message_id` to prevent replay or substitution attacks.
 
+### 3. Account Recovery
+To prevent permanent data loss if a device is lost, we implement a recovery mechanism using a **Recovery Wrapped Account Key (RWAK)**.
+- During setup, a high-entropy recovery code is generated.
+- The AK is wrapped with a key derived from this recovery code and stored on the server.
+- This allows the user to restore their account on a new device without the original LMK, provided they have their recovery code.
+
 ## Implemented Hardening Measures
 
 ### 1. Zero-Log Policy & Scrubbing
@@ -29,6 +35,9 @@ The mobile applications are protected by **freeRASP** for real-time threat detec
 - **Integrity Checks**: Detects if the app has been tampered with or resigned.
 - **Environment Checks**: Detects Root/Jailbreak, Emulators, and Hooking frameworks (e.g., Frida).
 - **Proactive Response**: In production, the app will securely exit if a critical threat is detected.
+
+> [!IMPORTANT]
+> **Initialization Robustness**: `freeRASP` configuration and initialization MUST be wrapped in a `try-catch` block. Failure to do so can cause the app to hang on startup if environment variables are missing or platform-specific initialization fails.
 
 ### 3. Certificate Pinning
 Strict SHA-256 certificate pinning is enforced via the `http_certificate_pinning` package to mitigate Man-in-the-Middle (MitM) attacks.

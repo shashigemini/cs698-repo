@@ -37,13 +37,21 @@ Windows terminals often use UTF-16LE, which breaks standard JSON parsing.
 - This script handles:
     - Sequential execution (to avoid port/file locks).
     - Encoding conversion to UTF-8.
-    - Automated failure reporting.
+    - Automated failure reporting using `tool/parse_test_errors.dart`.
+
+### Focus-First Rule
+On Windows desktop, `enterText()` can fail if the field isn't explicitly focused.
+- **Always**: Call `await tester.tap(finder)` before any `enterText()` call.
 
 ## Best Practices
 
 ### 1. Avoid `pumpAndSettle` with Infinite Animations
-Infinite spinners (like `CircularProgressIndicator`) will cause `pumpAndSettle` to timeout.
-- **Better**: `await tester.pump(Duration(seconds: 1))` or targeting specific semantics.
+Infinite spinners (like `_TypingIndicator` or `CircularProgressIndicator`) will cause `pumpAndSettle` to timeout.
+- **Better**: Use `await tester.pump(Duration(seconds: 1))` or `await tester.pumpAndSettle(Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, Duration(seconds: 5))`.
+
+### 2. Snackbar Races
+Snackbars can obscure UI elements or cause "found 0 matches" errors during transitions.
+- **Always**: Call `ScaffoldMessenger.of(context).clearSnackBars()` before finding other elements if a snackbar might be present.
 
 ### 2. Mocktail Fallbacks
 Always register fallback values for custom types in `setUpAll`:
@@ -53,5 +61,8 @@ setUpAll(() {
 });
 ```
 
-### 3. Storage Overrides
-Always override `storageServiceProvider` with a mock in widget tests to avoid platform channel errors.
+### 4. Mandatory Mock Overrides
+Always override platform-dependent services to avoid `MissingPluginException` or hangs.
+- `storageServiceProvider` -> `MockStorageService`
+- `cryptographyServiceProvider` -> `FakeCryptographyService` (to disable slow JIT key-gen in tests)
+- `freeraspProvider` (Ensure initialization is wrapped in `try-catch` and disabled in tests if needed).
