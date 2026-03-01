@@ -22,46 +22,60 @@ class HomeRobot {
 
   // Actions
   Future<void> enterMessage(String message) async {
+    // Per project rule 3.7: tap first to ensure focus on Windows,
+    // then enterText. Avoid pumpAndSettle which can hang on chat animations.
+    await tester.tap(chatInputField);
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.enterText(chatInputField, message);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
   }
 
   Future<void> tapSend() async {
+    debugPrint('Robot: Tapping Send button');
     await tester.tap(chatSendButton);
-    await tester.pumpAndSettle();
+    // Avoid pumpAndSettle here: once send triggers, the TypingIndicator
+    // animation is infinite and pumpAndSettle will hang. Use bounded pump.
+    await tester.pump(const Duration(milliseconds: 100));
   }
 
   Future<void> openDrawer() async {
-    // Alternatively, swipe from left edge
+    debugPrint('Robot: Opening Side Drawer');
     await tester.tap(drawerButton);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapNewConversation() async {
+    debugPrint('Robot: Tapping New Conversation menu');
     await tester.tap(newConversationMenu);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapLogout() async {
+    debugPrint('Robot: Tapping Logout menu');
     await tester.ensureVisible(logoutMenu);
     await tester.tap(logoutMenu);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapSignIn() async {
+    debugPrint('Robot: Tapping Sign In menu');
     await tester.ensureVisible(signInMenu);
     await tester.tap(signInMenu);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapSettings() async {
+    debugPrint('Robot: Tapping Account Settings menu');
     await tester.ensureVisible(settingsMenu);
     await tester.tap(settingsMenu);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapSuggestion(String suggestionText) async {
+    debugPrint('Robot: Tapping suggestion: "$suggestionText"');
     await tester.tap(find.text(suggestionText));
-    await tester.pumpAndSettle();
+    // Avoid pumpAndSettle: suggestion triggers TypingIndicator
+    // which has an infinite animation (project rule 3.3).
+    await tester.pump(const Duration(milliseconds: 100));
   }
 }

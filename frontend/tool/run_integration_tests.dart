@@ -78,18 +78,23 @@ Future<void> main(List<String> args) async {
               }
             }
 
+            // Pass through print/debugPrint messages
+            if (data['type'] == 'print' && data.containsKey('message')) {
+              print('   💬 ${data['message']}');
+            }
+
             // Catch and format errors
             if (data['type'] == 'error' ||
                 data['result'] == 'error' ||
                 data['success'] == false) {
               errorCount++;
               print('\n❌ TEST ERROR DETECTED:');
-              print(data.toString());
+              print('RAW JSON: $line'); // Added to see full content
               if (data.containsKey('error')) {
-                print(data['error'].toString().trim());
+                print('ERROR: ${data['error'].toString().trim()}');
               }
               if (data.containsKey('stackTrace')) {
-                print(data['stackTrace'].toString().trim());
+                print('STACK TRACE:\n${data['stackTrace'].toString().trim()}');
               }
               print('-' * 80 + '\n');
             }

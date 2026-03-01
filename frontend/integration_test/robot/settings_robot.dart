@@ -12,6 +12,13 @@ class SettingsRobot {
   Finder get confirmDeleteButton => find.text('Delete').last;
   Finder get conversationItems => find.byType(ListTile);
 
+  // Password Rotation
+  Finder get changePasswordButton => find.text('Change Password');
+  Finder get oldPasswordField => find.byKey(const Key('old_password_field'));
+  Finder get newPasswordField => find.byKey(const Key('new_password_field'));
+  Finder get changePasswordSubmitButton =>
+      find.byKey(const Key('change_password_submit_button'));
+
   // Robust finders for specific items
   Finder exportButtonForItem(String title) => find.descendant(
     of: find.ancestor(of: find.text(title), matching: find.byType(ListTile)),
@@ -36,15 +43,9 @@ class SettingsRobot {
     debugPrint('Robot: Tapping export button for "$conversationTitle"');
     final button = exportButtonForItem(conversationTitle);
 
-    // Ensure it's hittable
     await tester.ensureVisible(button);
     await tester.pumpAndSettle();
-
     await tester.tap(button, warnIfMissed: true);
-
-    debugPrint('Robot: Waiting for async export operation to finish...');
-    // Mock has 500ms delay. We wait longer.
-    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
   }
 
@@ -54,12 +55,7 @@ class SettingsRobot {
 
     await tester.ensureVisible(button);
     await tester.pumpAndSettle();
-
     await tester.tap(button, warnIfMissed: true);
-
-    debugPrint('Robot: Waiting for async delete operation to finish...');
-    // Mock has 300ms delay.
-    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
   }
 
@@ -71,14 +67,9 @@ class SettingsRobot {
       const Offset(0, -300),
     );
     await tester.pumpAndSettle();
-
-    // Ensure it's centered enough
     await tester.ensureVisible(deleteAccountButton);
     await tester.pumpAndSettle();
-
     await tester.tap(deleteAccountButton, warnIfMissed: true);
-    // Give dialog time to animate in
-    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
   }
 
@@ -86,5 +77,33 @@ class SettingsRobot {
     debugPrint('Robot: Tapping Confirm Delete button in dialog');
     await tester.tap(confirmDeleteButton);
     await tester.pumpAndSettle();
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    debugPrint('Robot: Starting password change flow in SettingsScreen');
+
+    // Ensure the button is visible - it might be at the bottom
+    await tester.dragUntilVisible(
+      changePasswordButton,
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+
+    debugPrint('Robot: Tapping Change Password button');
+    await tester.ensureVisible(changePasswordButton);
+    await tester.tap(changePasswordButton);
+    await tester.pumpAndSettle();
+
+    debugPrint('Robot: Entering passwords in dialog');
+    await tester.enterText(oldPasswordField, oldPassword);
+    await tester.pumpAndSettle();
+    await tester.enterText(newPasswordField, newPassword);
+    await tester.pumpAndSettle();
+
+    debugPrint('Robot: Tapping Update Password button');
+    await tester.tap(changePasswordSubmitButton);
+    // Dialog closure might trigger animations, so use manual pump
+    await tester.pump(const Duration(milliseconds: 1500));
   }
 }

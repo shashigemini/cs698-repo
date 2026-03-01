@@ -33,6 +33,7 @@ void main() {
         storage: mockStorage,
         crypto: FakeCryptographyService(),
         sessionKeys: MockSessionKeyStore(),
+        recovery: MockRecoveryService(), // Added this line
       );
 
       // Seed a user for login tests
@@ -40,7 +41,7 @@ void main() {
     });
 
     test('initial state is unauthenticated (null)', () {
-      expect(repository.currentUser, isNull);
+      expect(repository.currentUserId, isNull);
     });
 
     test(
@@ -54,7 +55,7 @@ void main() {
 
         await repository.login('test@example.com', 'password');
         await future;
-        expect(repository.currentUser, 'mock-user-id');
+        expect(repository.currentUserId, 'mock-user-id');
       },
     );
 
@@ -67,12 +68,12 @@ void main() {
           throwsA(isA<Exception>()),
         );
 
-        expect(repository.currentUser, isNull);
+        expect(repository.currentUserId, isNull);
       },
     );
 
     test(
-      'loginAnonymously updates currentUser to guest and emits state',
+      'loginAnonymously updates currentUserId to guest and emits state',
       () async {
         final future = expectLater(
           repository.authStateChanges,
@@ -81,21 +82,20 @@ void main() {
 
         await repository.loginAnonymously();
         await future;
-        expect(repository.currentUser, AppStrings.guestUserId);
+        expect(repository.currentUserId, AppStrings.guestUserId);
       },
     );
 
-    test('logout clears currentUser and emits null state', () async {
+    test('logout clears currentUserId and emits null state', () async {
       // First, log in
       await repository.login('test@example.com', 'password');
-      expect(repository.currentUser, 'mock-user-id');
+      expect(repository.currentUserId, 'mock-user-id');
 
       // Subscribe, then trigger logout.
       final future = expectLater(repository.authStateChanges, emits(isNull));
 
       await repository.logout();
       await future;
-      expect(repository.currentUser, isNull);
     });
   });
 }

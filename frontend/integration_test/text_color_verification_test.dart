@@ -1,28 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/main.dart' as app;
 import 'robot/auth_robot.dart';
 import 'robot/home_robot.dart';
+import 'utils/test_utils.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    debugPrint(
-      'Wiping secure storage & shared preferences for test isolation...',
-    );
-    const storage = FlutterSecureStorage();
-    await storage.deleteAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    debugPrint('Wiping storage for test isolation...');
+    await wipeStorage();
   });
 
   testWidgets('Verify input text color is black when typing', (tester) async {
-    app.main();
-    await tester.pumpAndSettle();
+    debugPrint('[Start] Verify input text color is black when typing');
+    await buildTestApp(tester);
 
     final authRobot = AuthRobot(tester);
     final homeRobot = HomeRobot(tester);

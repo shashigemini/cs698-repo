@@ -55,22 +55,30 @@ Handles external data sources.
 
 ## Core Abstractions
 
+### Security & Cryptography
+We implement a zero-trust model for user data:
+- **CryptographyService**: Manages Argon2id key derivation, AES-GCM wrapping, and message encryption.
+- **SecurityService**: Orchestrates **freeRASP** for runtime application self-protection.
+- **Rule**: All sensitive user data must be encrypted before persistence or transmission.
+
 ### Network Interop
 We use **Dio** with a custom `HttpInterceptor` to handle:
 - Automatic token refresh logic.
 - Standardized error mapping from API codes to Dart exceptions.
 - Global loading/error states.
+- Redaction of sensitive fields in diagnostics via `AppLogger.scrub()`.
 
-### Persistence
-The `StorageService` abstracts platform differences:
-- **Mobile**: `flutter_secure_storage` (Keychain/KeyStore).
-- **Web**: HttpOnly Cookies (handled by browser) + localStorage for CSRF.
+## Entry Points
 
-## Security Hardening
+### Production (`lib/main.dart`)
+The standard entry point for regular users. Initializes core services with production configurations and starts the application.
 
-### Zero-Log Policy
-We implement a global sensitive data scrubber in `AppLogger.scrub()` that redacts passwords, tokens, and API keys before they reach the logs. This is integrated into the `HttpInterceptor`.
+### Developer/Automation (`lib/main_dev.dart`)
+A specialized entry point for development and test automation.
+- **Mock Overrides**: Allows overriding repositories (e.g., `mockAuthRepositoryProvider`) for isolated testing.
+- **Marionette Integration**: Includes `MarionetteBinding` to facilitate AI-driven UI testing and automation.
+- **High Verbosity**: Configures `AppLogger` to trace level for detailed diagnostics.
 
-### Certificate Pinning
-To mitigate Man-in-the-Middle (MitM) attacks, the frontend uses strict certificate pinning via the `http_certificate_pinning` package, validating the server's SHA-256 fingerprint during connection.
+## Resilience
+The platform uses strict certificate pinning and platform-specific secure storage to ensure resilience against advanced attack vectors.
 

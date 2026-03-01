@@ -103,12 +103,13 @@ void main() {
   testWidgets('Register successful calls repository method', (tester) async {
     when(
       () => mockAuthRepository.register(any(), any()),
-    ).thenAnswer((_) async => {});
+    ).thenAnswer((_) async => 'mock-mnemonic-phrase');
 
     await tester.pumpWidget(createSubject());
 
     await tester.tap(find.text('Register'));
-    await tester.pumpAndSettle();
+    // Wait for the tab AnimatedContainer (200ms) to finish
+    await tester.pump(const Duration(milliseconds: 300));
 
     final emailField = find.byKey(const Key('register_email_field'));
     final passwordField = find.byKey(const Key('register_password_field'));
@@ -119,7 +120,9 @@ void main() {
     final registerButton = find.byKey(const Key('register_button'));
     await tester.ensureVisible(registerButton);
     await tester.tap(registerButton);
-    await tester.pumpAndSettle();
+    // Wait for the async register Future and dialog open animation
+    await tester.pump(); // Start the async call
+    await tester.pump(const Duration(milliseconds: 100)); // Complete microtasks
 
     verify(
       () => mockAuthRepository.register('newuser@test.com', 'ValidPass1!'),

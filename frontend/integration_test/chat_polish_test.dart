@@ -1,24 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/main.dart' as app;
 import 'robot/auth_robot.dart';
 import 'robot/home_robot.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
+import 'utils/test_utils.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    debugPrint(
-      'Wiping secure storage & shared preferences for test isolation...',
-    );
-    const storage = FlutterSecureStorage();
-    await storage.deleteAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    debugPrint('Wiping storage for test isolation...');
+    await wipeStorage();
   });
 
   late AuthRobot authRobot;
@@ -26,11 +20,7 @@ void main() {
 
   group('Chat Polish Integration Test', () {
     Future<void> startApp(WidgetTester tester) async {
-      app.main();
-      await tester.pumpAndSettle();
-      // 1. Bypass splash screen (3s delay)
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pumpAndSettle();
+      await buildTestApp(tester);
       authRobot = AuthRobot(tester);
       homeRobot = HomeRobot(tester);
     }
@@ -40,7 +30,14 @@ void main() {
 
       // 1. Login
       await authRobot.login('test@example.com', 'password');
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      // Login triggers router redirect + fetchRecentConversations (500ms mock)
+      // Use pump to advance past async delays, then bounded pumpAndSettle
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 5),
+      );
 
       // 2. Open Drawer and check History Item
       await homeRobot.openDrawer();

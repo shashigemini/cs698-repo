@@ -18,6 +18,22 @@ class AuthRobot {
   Finder get guestButton => find.text('Continue as Guest');
   Finder get loginTab => find.text('Login');
   Finder get registerTab => find.text('Register');
+  Finder get forgotPasswordButton =>
+      find.byKey(const Key('forgot_password_button'));
+
+  // Mnemonic Dialog
+  Finder get mnemonicConfirmButton =>
+      find.byKey(const Key('mnemonic_confirm_button'));
+
+  // Recovery Dialog
+  Finder get recoveryEmailField =>
+      find.byKey(const Key('recovery_email_field'));
+  Finder get recoveryMnemonicField =>
+      find.byKey(const Key('recovery_mnemonic_field'));
+  Finder get recoveryNewPasswordField =>
+      find.byKey(const Key('recovery_new_password_field'));
+  Finder get recoverySubmitButton =>
+      find.byKey(const Key('recovery_submit_button'));
 
   // Actions
   Future<void> enterEmail(String email) async {
@@ -41,24 +57,31 @@ class AuthRobot {
   }
 
   Future<void> tapLogin() async {
+    debugPrint('Robot: Tapping Login button');
     await tester.ensureVisible(loginButton);
     await tester.tap(loginButton);
-    await tester.pumpAndSettle();
+    // Use manual pump instead of pumpAndSettle for loading animations
+    await tester.pump(const Duration(milliseconds: 1000));
   }
 
   Future<void> tapRegister() async {
+    debugPrint('Robot: Tapping Register button');
     await tester.ensureVisible(registerButton);
     await tester.tap(registerButton);
-    await tester.pumpAndSettle();
+    // We use a manual pump here because registration triggers a dialog
+    // and Windows often hangs on pumpAndSettle during dialog animations.
+    await tester.pump(const Duration(milliseconds: 1000));
   }
 
   Future<void> tapGuestLogin() async {
+    debugPrint('Robot: Tapping Guest Login button');
     await tester.ensureVisible(guestButton);
     await tester.tap(guestButton);
     await tester.pumpAndSettle();
   }
 
   Future<void> switchToRegister() async {
+    debugPrint('Robot: Switching to Register tab');
     await tester.tap(registerTab);
     await tester.pumpAndSettle();
   }
@@ -72,5 +95,35 @@ class AuthRobot {
     await enterEmail(email);
     await enterPassword(password);
     await tapLogin();
+  }
+
+  Future<void> tapForgotPassword() async {
+    await tester.tap(forgotPasswordButton);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> confirmMnemonic() async {
+    await tester.tap(mnemonicConfirmButton);
+    // Explicitly avoid pumpAndSettle here as it redirects to Home
+    await tester.pump(const Duration(milliseconds: 1500));
+  }
+
+  Future<void> recoverAccount({
+    required String email,
+    required String mnemonic,
+    required String newPassword,
+  }) async {
+    debugPrint('Robot: Entering recovery details');
+    await tester.enterText(recoveryEmailField, email);
+    await tester.pumpAndSettle();
+    await tester.enterText(recoveryMnemonicField, mnemonic);
+    await tester.pumpAndSettle();
+    await tester.enterText(recoveryNewPasswordField, newPassword);
+    await tester.pumpAndSettle();
+
+    debugPrint('Robot: Tapping Reset Password button');
+    await tester.tap(recoverySubmitButton);
+    // Explicitly avoid pumpAndSettle here as it auto-logins to Home
+    await tester.pump(const Duration(milliseconds: 2000));
   }
 }

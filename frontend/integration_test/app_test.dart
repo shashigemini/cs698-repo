@@ -1,32 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/main.dart' as app;
+
+import '../test/helpers/crypto_mocks.dart';
 
 import 'robot/auth_robot.dart';
 import 'robot/home_robot.dart';
+import 'utils/test_utils.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() {
+    registerCryptoFallbackValues();
+  });
+
   setUp(() async {
-    debugPrint(
-      'Wiping secure storage & shared preferences for test isolation...',
-    );
-    const storage = FlutterSecureStorage();
-    await storage.deleteAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    debugPrint('Wiping storage for test isolation...');
+    await wipeStorage();
   });
 
   testWidgets('Full Guest Flow - Chat, Drawer, and Sign In routing', (
     tester,
   ) async {
     debugPrint('[Start] Full Guest Flow - Chat, Drawer, and Sign In routing');
-    app.main();
-    await tester.pumpAndSettle();
+    await buildTestApp(tester);
 
     final authRobot = AuthRobot(tester);
     final homeRobot = HomeRobot(tester);
@@ -50,8 +48,11 @@ void main() {
     );
 
     debugPrint('Waiting for system response propagation...');
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    // Multiple pumps needed: TypingIndicator is infinite,
+    // but user message should render after a few frames.
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
 
     expect(
       find.text('What does the Bhagavad Gita teach about karma?'),
@@ -81,8 +82,7 @@ void main() {
 
   testWidgets('Invalid Login and Registration validations', (tester) async {
     debugPrint('[Start] Invalid Login and Registration validations');
-    app.main();
-    await tester.pumpAndSettle();
+    await buildTestApp(tester);
 
     final authRobot = AuthRobot(tester);
 
@@ -131,60 +131,97 @@ void main() {
   testWidgets('Authenticated User Flow with Login, Message Send and Logout', (
     tester,
   ) async {
-    debugPrint('[Start] Authenticated User Flow');
-    app.main();
-    await tester.pumpAndSettle();
+    try {
+      debugPrint('[Start] Authenticated User Flow');
+      await buildTestApp(tester);
 
-    final authRobot = AuthRobot(tester);
-    final homeRobot = HomeRobot(tester);
+      final authRobot = AuthRobot(tester);
+      final homeRobot = HomeRobot(tester);
 
-    debugPrint('Pump initial startup...');
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+      debugPrint('Pump initial startup...');
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
 
-    debugPrint('Entering auth credentials...');
-    await authRobot.enterEmail('test@example.com');
-    await authRobot.enterPassword('password');
-    debugPrint('Tapping login array...');
-    await authRobot.tapLogin();
+      debugPrint(
+        'Checking for login button presence (ensuring correct tab)...',
+      );
+      final isLoginVisible = authRobot.loginButton.evaluate().isNotEmpty;
+      if (!isLoginVisible) {
+        debugPrint('Login button not found, attempting switch to Login tab...');
+        await authRobot.switchToLogin();
+      }
 
-    debugPrint('Waiting 5s for network login simulation & nav...');
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
+      debugPrint('Entering auth credentials...');
+      await authRobot.enterEmail('test@example.com');
+      await authRobot.enterPassword('password');
+      debugPrint('Tapping login...');
+      await authRobot.tapLogin();
 
-    expect(homeRobot.chatInputField, findsOneWidget);
+      debugPrint('Waiting for login + nav (FakeCrypto is instant)...');
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
 
-    debugPrint('Typing text into input field...');
-    await homeRobot.enterMessage('Hello Sacred Wisdom');
-    debugPrint('Tapping send...');
-    await homeRobot.tapSend();
+      expect(homeRobot.chatInputField, findsOneWidget);
 
-    debugPrint('Waiting for response propagation...');
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+      // Give ChatController._init() time to complete.
+      // It calls getConversations() which has a 500ms delay in the mock.
+      // Without this, sendQuery() can race with _init()'s final state.copyWith().
+      await tester.pump(const Duration(milliseconds: 700));
 
-    expect(find.text('Hello Sacred Wisdom'), findsOneWidget);
+      debugPrint('Typing text into input field...');
+      await homeRobot.enterMessage('Hello Sacred Wisdom');
 
-    debugPrint('Opening drawer...');
-    await homeRobot.openDrawer();
-    debugPrint('Tapping logout...');
-    await homeRobot.tapLogout();
+      // Validate the text was successfully entered before sending
+      final inputText =
+          tester
+              .widget<TextField>(find.byKey(const Key('chat_input_field')))
+              .controller
+              ?.text ??
+          '';
+      debugPrint('Input field text after enterMessage: "$inputText"');
+      expect(
+        inputText,
+        equals('Hello Sacred Wisdom'),
+        reason: 'enterText must populate the chat input field before send',
+      );
 
-    debugPrint('Waiting for redirect...');
-    await tester.pump(const Duration(seconds: 2));
-    await tester.pumpAndSettle();
+      debugPrint('Tapping send...');
+      await homeRobot.tapSend();
 
-    expect(authRobot.loginButton, findsOneWidget);
-    debugPrint('Done. Pumping trailing frame buffer...');
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
-    debugPrint('[End] Authenticated User Flow');
+      debugPrint('Waiting for message to appear...');
+      // ChatController optimistically adds the user message right away, so
+      // we need at least one frame pump for the ListView to rebuild.
+      await tester.pump(); // initial frame — let the state setter run
+      await tester.pump(
+        const Duration(milliseconds: 300),
+      ); // allow ListView rebuild
+
+      expect(find.text('Hello Sacred Wisdom'), findsOneWidget);
+
+      debugPrint('Opening drawer...');
+      await homeRobot.openDrawer();
+      debugPrint('Tapping logout...');
+      await homeRobot.tapLogout();
+
+      debugPrint('Waiting for redirect...');
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(authRobot.loginButton, findsOneWidget);
+      debugPrint('Done. Pumping trailing frame buffer...');
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      debugPrint('[End] Authenticated User Flow');
+    } catch (e, st) {
+      debugPrint('DEBUG ERROR in Authenticated User Flow: $e');
+      debugPrint('STACK TRACE: $st');
+      rethrow;
+    }
   });
 
   testWidgets('Rate Limit Exceeded and Network Error UI Flow', (tester) async {
     debugPrint('[Start] Rate Limit Exceeded Flow');
-    app.main();
-    await tester.pumpAndSettle();
+    await buildTestApp(tester);
 
     final authRobot = AuthRobot(tester);
     final homeRobot = HomeRobot(tester);
@@ -211,15 +248,14 @@ void main() {
     // Send messages to trigger RateLimitException.
     for (var i = 0; i < 4; i++) {
       debugPrint('--- Loop $i start ---');
-      await Future<void>.delayed(const Duration(seconds: 2));
-      await tester.pumpAndSettle();
+      // Wait for previous response to complete (1s in mock)
+      await tester.pump(const Duration(seconds: 2));
 
-      await tester.tap(homeRobot.chatInputField);
-      await tester.pump();
-      await tester.enterText(homeRobot.chatInputField, 'Rate limit test $i');
-      await tester.pump();
-      await tester.tap(homeRobot.chatSendButton);
-      await tester.pump();
+      await homeRobot.enterMessage('Rate limit test $i');
+      await homeRobot.tapSend();
+
+      // Pump enough frames to let the message and indicator process
+      await tester.pump(const Duration(milliseconds: 500));
       debugPrint('--- Loop $i end ---');
     }
 
@@ -253,8 +289,7 @@ void main() {
 
   testWidgets('Full Registration and Password Visibility Flow', (tester) async {
     debugPrint('[Start] Full Registration and Password Visibility Flow');
-    app.main();
-    await tester.pumpAndSettle();
+    await buildTestApp(tester);
 
     final authRobot = AuthRobot(tester);
 
@@ -288,6 +323,7 @@ void main() {
     debugPrint('Tapping register (simulating existing collision)...');
     await authRobot.tapRegister();
 
+    // FakeCrypto is instant — no need to wait long for collision error.
     debugPrint('Waiting for collision rejection response...');
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
@@ -307,15 +343,24 @@ void main() {
     debugPrint('Tapping register (simulating success)...');
     await authRobot.tapRegister();
 
-    debugPrint('Waiting for register redirect to home screen...');
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    // FakeCrypto is instant — mnemonic dialog should appear quickly.
+    debugPrint('Waiting for mnemonic dialog...');
+    await tester.pump(const Duration(seconds: 2));
+
+    // Dismiss the MnemonicDisplayDialog before the router can redirect.
+    if (authRobot.mnemonicConfirmButton.evaluate().isNotEmpty) {
+      debugPrint('Confirming mnemonic dialog...');
+      await authRobot.confirmMnemonic();
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+    } else {
+      debugPrint('WARNING: Mnemonic dialog not found!');
+    }
 
     final homeRobot = HomeRobot(tester);
     expect(homeRobot.chatInputField, findsOneWidget);
 
     debugPrint('Test successful. Pumping trailing frame buffer...');
-    // Extended the pump to 5 seconds to guarantee ALL routing animations settle
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 2));
     debugPrint('[End] Full Registration and Password Visibility Flow');

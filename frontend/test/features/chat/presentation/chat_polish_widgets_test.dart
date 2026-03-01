@@ -21,6 +21,7 @@ void main() {
   late MockAuthRepository mockAuthRepo;
   late MockChatRepository mockChatRepo;
   late MockStorage mockStorage;
+  late MockRecoveryService mockRecoveryService;
 
   setUpAll(() {
     registerFallbackValue(
@@ -41,11 +42,14 @@ void main() {
     final mockSessionKeys = MockSessionKeyStore();
     when(() => mockSessionKeys.currentAccountKey).thenReturn(null);
     final mockCrypto = FakeCryptographyService();
+    mockRecoveryService =
+        MockRecoveryService(); // Initialize mockRecoveryService
 
     mockAuthRepo = MockAuthRepository(
       storage: mockStorage,
       crypto: mockCrypto,
       sessionKeys: mockSessionKeys,
+      recovery: mockRecoveryService, // Add recovery service
     );
     mockChatRepo = MockChatRepository(
       crypto: mockCrypto,

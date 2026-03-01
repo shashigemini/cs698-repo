@@ -22,10 +22,11 @@ class MockLoggedInAuthRepo extends MockAuthRepository {
     required super.storage,
     required super.crypto,
     required super.sessionKeys,
+    required super.recovery,
   });
 
   @override
-  String? get currentUser => 'test-user-id';
+  String? get currentUserId => 'test-user-id';
 
   @override
   Stream<String?> get authStateChanges => Stream.value('test-user-id');
@@ -46,6 +47,7 @@ void main() {
             storage: MockStorage(),
             crypto: FakeCryptographyService(),
             sessionKeys: MockSessionKeyStore(),
+            recovery: MockRecoveryService(),
           ),
         ), // Default is unauthenticated
       ],
@@ -82,6 +84,7 @@ void main() {
             storage: MockStorage(),
             crypto: FakeCryptographyService(),
             sessionKeys: MockSessionKeyStore(),
+            recovery: MockRecoveryService(),
           ),
         ),
       ],

@@ -1,33 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/main.dart' as app;
 
 import 'robot/auth_robot.dart';
 import 'robot/home_robot.dart';
 import 'robot/settings_robot.dart';
+import 'utils/test_utils.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    debugPrint(
-      'Wiping secure storage & shared preferences for test isolation...',
-    );
-    const storage = FlutterSecureStorage();
-    await storage.deleteAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    debugPrint('Wiping storage for test isolation...');
+    await wipeStorage();
   });
 
   testWidgets(
     'Authenticated Settings Flow - History Search and Account Deletion',
     (tester) async {
       debugPrint('[Start] Authenticated Settings Flow');
-      app.main();
-      await tester.pumpAndSettle();
+      await buildTestApp(tester);
 
       final authRobot = AuthRobot(tester);
       final homeRobot = HomeRobot(tester);
@@ -71,12 +63,18 @@ void main() {
       await settingsRobot.tapExport('Ancient wisdom');
 
       debugPrint('Step: Verifying export snackbar...');
+      // Export has a 500ms mock delay — pump past it before checking
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
       expect(find.text('Conversation exported'), findsOneWidget);
 
       debugPrint('Step: Testing deletion for "Ancient wisdom"...');
       await settingsRobot.tapDeleteConversation('Ancient wisdom');
 
       debugPrint('Step: Verifying deletion snackbar...');
+      // Delete (300ms) + re-fetch (500ms) mock delays
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
       expect(find.text('Conversation deleted'), findsOneWidget);
 
       debugPrint('Step: Verifying empty search state message...');

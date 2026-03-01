@@ -29,15 +29,22 @@ void main() {
   late MockAuthRepository mockAuthRepo;
   late MockChatRepository mockChatRepo;
   late MockStorageService mockStorage;
+  late FakeCryptographyService mockCrypto;
+  late MockSessionKeyStore mockSessionKeys;
+  late MockRecoveryService mockRecoveryService;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     mockStorage = MockStorageService();
+    mockCrypto = FakeCryptographyService();
+    mockSessionKeys = MockSessionKeyStore();
+    mockRecoveryService = MockRecoveryService();
 
     mockAuthRepo = MockAuthRepository(
       storage: mockStorage,
-      crypto: FakeCryptographyService(),
-      sessionKeys: MockSessionKeyStore(),
+      crypto: mockCrypto,
+      sessionKeys: mockSessionKeys,
+      recovery: mockRecoveryService,
     );
     mockChatRepo = MockChatRepository();
   });

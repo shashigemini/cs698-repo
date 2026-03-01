@@ -14,6 +14,7 @@ import 'package:frontend/features/auth/domain/models/token_pair.dart';
 import '../../../helpers/crypto_mocks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend/core/services/cryptography_service.dart';
 import 'package:frontend/core/services/local_settings_store.dart';
 
 class MockStorage extends Mock implements StorageService {}
@@ -29,9 +30,12 @@ void main() {
     );
   });
 
+  late CryptographyService mockCrypto;
+  late MockSessionKeyStore mockSessionKeys;
+  late MockRecoveryService mockRecoveryService;
+  late MockStorage mockStorage;
   late MockAuthRepository mockAuthRepo;
   late MockChatRepository mockChatRepo;
-  late MockStorage mockStorage;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -42,14 +46,16 @@ void main() {
     when(() => mockStorage.getTokens()).thenAnswer((_) async => null);
     when(() => mockStorage.getCsrfToken()).thenAnswer((_) async => null);
 
-    final mockSessionKeys = MockSessionKeyStore();
+    mockSessionKeys = MockSessionKeyStore();
     when(() => mockSessionKeys.currentAccountKey).thenReturn(null);
-    final mockCrypto = FakeCryptographyService();
+    mockCrypto = FakeCryptographyService();
+    mockRecoveryService = MockRecoveryService();
 
     mockAuthRepo = MockAuthRepository(
       storage: mockStorage,
       crypto: mockCrypto,
       sessionKeys: mockSessionKeys,
+      recovery: mockRecoveryService,
     );
     mockChatRepo = MockChatRepository(
       crypto: mockCrypto,
