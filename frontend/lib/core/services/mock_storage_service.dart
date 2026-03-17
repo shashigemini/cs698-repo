@@ -56,4 +56,9 @@ class MockStorageService implements StorageService {
   Future<String?> getCsrfToken() async {
     return _store['csrfToken'];
   }
+
+  /// Clears all stored data.
+  void clear() {
+    _store.clear();
+  }
 }

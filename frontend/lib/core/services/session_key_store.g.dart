@@ -30,15 +30,15 @@ final class SessionKeyStoreProvider
   /// can be accessed by repositories without re-deriving them from the password.
   /// All keys are cleared upon logout.
   SessionKeyStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'sessionKeyStoreProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'sessionKeyStoreProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$sessionKeyStoreHash();
@@ -70,14 +70,11 @@ abstract class _$SessionKeyStore extends $Notifier<SessionKeyState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<SessionKeyState, SessionKeyState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<SessionKeyState, SessionKeyState>,
-              SessionKeyState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<SessionKeyState, SessionKeyState>,
+        SessionKeyState,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }

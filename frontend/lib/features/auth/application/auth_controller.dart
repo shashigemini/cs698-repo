@@ -5,6 +5,19 @@ import '../data/providers/auth_provider.dart';
 
 part 'auth_controller.g.dart';
 
+/// Indicates whether the initial auth token check has completed.
+/// This prevents the [GoRouter] from prematurely redirecting to `/login`
+/// while tokens are still being loaded from secure storage.
+@Riverpod(keepAlive: true)
+class AuthInitialization extends _$AuthInitialization {
+  @override
+  bool build() => false;
+
+  void complete() {
+    state = true;
+  }
+}
+
 /// Manages the authentication state of the application.
 ///
 /// Converts the stream of auth state changes from the repository into
@@ -20,10 +33,22 @@ class AuthController extends _$AuthController {
     // Listen to repo for future updates
     final sub = repo.authStateChanges.listen((user) {
       state = user;
+      final initNotifier = ref.read(authInitializationProvider.notifier);
+      if (!ref.read(authInitializationProvider)) {
+        initNotifier.complete();
+      }
     });
 
     ref.onDispose(() {
       sub.cancel();
+    });
+
+    // Mark initialization as complete immediately since initial state
+    // is known synchronously from the repository upon instantiation.
+    Future.microtask(() {
+      if (!ref.read(authInitializationProvider)) {
+        ref.read(authInitializationProvider.notifier).complete();
+      }
     });
 
     // Return the synchronous current state immediately

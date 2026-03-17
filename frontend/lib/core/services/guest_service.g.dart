@@ -20,15 +20,15 @@ final class GuestServiceProvider
     with $Provider<GuestService> {
   /// Provides the [GuestService] instance.
   GuestServiceProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'guestServiceProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'guestServiceProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$guestServiceHash();

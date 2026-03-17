@@ -63,7 +63,7 @@ abstract final class AppStrings {
   static const passwordLabel = 'Password';
   static const forgotPassword = 'Forgot password?';
   static const deleteAccountSuccess = 'Account deleted successfully';
-  static const invalidCredentials = 'Invalid credentials';
+  static const invalidCredentials = 'Invalid email or password';
 
   // Password Change
   static const changePassword = 'Change Password';
@@ -115,4 +115,16 @@ abstract final class AppStrings {
   static const a11yAssistantTyping = 'Assistant is typing...';
   static const a11yBrandLogo = 'Sacred Wisdom logo';
   static const a11yUserAvatar = 'User avatar';
+
+  // ── Demo Admin Panel ────────────────────────────────────────
+  static const demoAdminTitle = 'Demo Admin Panel';
+  static const demoUploadPdf = 'Upload PDF Document';
+  static const demoPdfTitle = 'Document Title';
+  static const demoPdfAuthor = 'Author (Optional)';
+  static const demoPdfLogicalId = 'Logical Book ID (e.g. gita_01)';
+  static const demoUploadButton = 'Upload and Ingest';
+  static const demoOpenAiKey = 'OpenAI API Key';
+  static const demoSaveKey = 'Save OpenAI Key';
+  static const demoConfigUpdated = 'Configuration updated successfully';
+  static const demoPdfIngested = 'PDF uploaded and queued for ingestion';
 }

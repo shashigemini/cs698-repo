@@ -19,27 +19,23 @@ final sharedPreferencesProvider = SharedPreferencesProvider._();
 ///
 /// This provider must be overridden in the [ProviderScope] during app startup.
 
-final class SharedPreferencesProvider
-    extends
-        $FunctionalProvider<
-          SharedPreferences,
-          SharedPreferences,
-          SharedPreferences
-        >
-    with $Provider<SharedPreferences> {
+final class SharedPreferencesProvider extends $FunctionalProvider<
+    SharedPreferences,
+    SharedPreferences,
+    SharedPreferences> with $Provider<SharedPreferences> {
   /// Provides the initialized [SharedPreferences] instance.
   ///
   /// This provider must be overridden in the [ProviderScope] during app startup.
   SharedPreferencesProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'sharedPreferencesProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'sharedPreferencesProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$sharedPreferencesHash();
@@ -47,8 +43,8 @@ final class SharedPreferencesProvider
   @$internal
   @override
   $ProviderElement<SharedPreferences> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   SharedPreferences create(Ref ref) {
@@ -73,25 +69,21 @@ final localSettingsStoreProvider = LocalSettingsStoreProvider._();
 
 /// Provides the [LocalSettingsStore] instance.
 
-final class LocalSettingsStoreProvider
-    extends
-        $FunctionalProvider<
-          LocalSettingsStore,
-          LocalSettingsStore,
-          LocalSettingsStore
-        >
-    with $Provider<LocalSettingsStore> {
+final class LocalSettingsStoreProvider extends $FunctionalProvider<
+    LocalSettingsStore,
+    LocalSettingsStore,
+    LocalSettingsStore> with $Provider<LocalSettingsStore> {
   /// Provides the [LocalSettingsStore] instance.
   LocalSettingsStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'localSettingsStoreProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'localSettingsStoreProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$localSettingsStoreHash();
@@ -99,8 +91,8 @@ final class LocalSettingsStoreProvider
   @$internal
   @override
   $ProviderElement<LocalSettingsStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   LocalSettingsStore create(Ref ref) {

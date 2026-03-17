@@ -1,12 +1,13 @@
 # API Client & Integration
 
-The frontend communicates with the FastAPI backend through a structured, interceptor-based layer.
+The frontend communicates with the FastAPI backend through a structured, interceptor-based layer using the **Dio** HTTP client.
 
 ## Network Interceptor
 
-The `HttpInterceptor` is the "brain" of our network layer. It handles cross-cutting concerns transparently.
+The `HttpInterceptor` is the central hub for handling cross-cutting concerns in our network layer.
 
 ### Token Refresh Sequence
+We implement automatic silent token refresh to ensure a seamless user experience.
 
 ```mermaid
 sequenceDiagram
@@ -16,25 +17,26 @@ sequenceDiagram
     
     App->>Int: Authenticated Request
     Int->>Int: Check token expiry
-    alt Token Expiring Soon
+    alt Token Expired (401)
         Int->>Int: Lock concurrent requests
         Int->>API: POST /auth/refresh
         API-->>Int: 200 OK (New Tokens)
-        Int->>Int: Update Storage
-        Int->>Int: Release locks
+        Int->>Int: Update Secure Storage
+        Int->>Int: Release locks & retry original
+    else Valid Token
+        Int->>API: Original Request (Bearer Token)
     end
-    Int->>API: Original Request (Bearer Token)
     API-->>Int: 200 OK
     Int-->>App: Result
 ```
 
 ## Authentication Protocol
 
-The platform implements a "Secret-Free" authentication protocol. Raw passwords are **never** transmitted to the backend.
-
-1. **Client-Side Derivation**: The client derives a `ClientAuthToken` from the user's password using Argon2id and HKDF.
-2. **Transmission**: Only the derived token is sent to the `/auth/login` or `/auth/register` endpoints.
-3. **JWT Exchange**: Upon successful validation of the token, the backend issues a standard JWT `TokenPair` (Access + Refresh).
+The platform uses standard secure authentication over HTTPS:
+1. **Transmission**: Credentials (Email/Password) are sent over a secure TLS 1.2+ channel.
+2. **Backend Protection**: Passwords are never stored in plain text; they are hashed using **Argon2** before storage.
+3. **JWT Exchange**: Upon successful login, the backend issues an Access Token (15m) and a Refresh Token (7d).
+4. **Web Security**: For web clients, the backend sets `HttpOnly` cookies to protect against XSS-based token theft.
 
 ## Error Mapping
 
@@ -42,18 +44,23 @@ We map backend `error_code` strings to Dart `Exceptions` to ensure the UI can re
 
 | API Error Code | Dart Exception | UI Action |
 |----------------|----------------|-----------|
-| `RATE_LIMIT_EXCEEDED` | `RateLimitException` | Show rate limit modal |
-| `INVALID_CREDENTIALS` | `AuthException` | Inline form error (Invalid email/password) |
-| `EMAIL_ALREADY_EXISTS` | `AuthException` | Inline form error (Email taken) |
-| `UNAUTHORIZED` | `SessionExpiredException` | Redirect to login |
+| `RATE_LIMIT_EXCEEDED` | `RateLimitException` | Show rate limit bottom sheet |
+| `INVALID_CREDENTIALS` | `AuthException` | Show "Invalid email or password" |
+| `EMAIL_ALREADY_EXISTS` | `AuthException` | Show "Email is already in use" |
+| `UNAUTHORIZED` | `SessionExpiredException` | Trigger logout and redirect to login |
+| `INTERNAL_ERROR` | `ServerException` | Show generic "Something went wrong" |
 
 ## Configuration
 
-Our base network configuration is centralized:
+Standardized network settings are configured via `BaseOptions`:
 ```dart
 final dioOptions = BaseOptions(
   baseUrl: AppStrings.apiBaseUrl,
   connectTimeout: const Duration(seconds: 10),
   receiveTimeout: const Duration(seconds: 30),
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  },
 );
 ```

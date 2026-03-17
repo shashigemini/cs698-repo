@@ -13,13 +13,20 @@ _LoginRequestDto _$LoginRequestDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$LoginRequestDtoToJson(_LoginRequestDto instance) =>
-    <String, dynamic>{'email': instance.email, 'password': instance.password};
+    <String, dynamic>{
+      'email': instance.email,
+      'password': instance.password,
+    };
 
 _RegisterRequestDto _$RegisterRequestDtoFromJson(Map<String, dynamic> json) =>
     _RegisterRequestDto(
       email: json['email'] as String,
       password: json['password'] as String,
-      fullName: json['full_name'] as String,
+      fullName: json['full_name'] as String?,
+      clientAuthToken: json['client_auth_token'] as String?,
+      salt: json['salt'] as String?,
+      wrappedAccountKey: json['wrapped_account_key'] as String?,
+      recoveryWrappedAk: json['recovery_wrapped_ak'] as String?,
     );
 
 Map<String, dynamic> _$RegisterRequestDtoToJson(_RegisterRequestDto instance) =>
@@ -27,6 +34,10 @@ Map<String, dynamic> _$RegisterRequestDtoToJson(_RegisterRequestDto instance) =>
       'email': instance.email,
       'password': instance.password,
       'full_name': instance.fullName,
+      'client_auth_token': instance.clientAuthToken,
+      'salt': instance.salt,
+      'wrapped_account_key': instance.wrappedAccountKey,
+      'recovery_wrapped_ak': instance.recoveryWrappedAk,
     };
 
 _TokenResponseDto _$TokenResponseDtoFromJson(Map<String, dynamic> json) =>
@@ -44,31 +55,31 @@ Map<String, dynamic> _$TokenResponseDtoToJson(_TokenResponseDto instance) =>
     };
 
 _ChangePasswordRequestDto _$ChangePasswordRequestDtoFromJson(
-  Map<String, dynamic> json,
-) => _ChangePasswordRequestDto(
-  newAuthToken: json['new_auth_token'] as String,
-  newWrappedAccountKey: json['new_wrapped_account_key'] as String,
-);
+        Map<String, dynamic> json) =>
+    _ChangePasswordRequestDto(
+      newAuthToken: json['new_auth_token'] as String,
+      newWrappedAccountKey: json['new_wrapped_account_key'] as String,
+    );
 
 Map<String, dynamic> _$ChangePasswordRequestDtoToJson(
-  _ChangePasswordRequestDto instance,
-) => <String, dynamic>{
-  'new_auth_token': instance.newAuthToken,
-  'new_wrapped_account_key': instance.newWrappedAccountKey,
-};
+        _ChangePasswordRequestDto instance) =>
+    <String, dynamic>{
+      'new_auth_token': instance.newAuthToken,
+      'new_wrapped_account_key': instance.newWrappedAccountKey,
+    };
 
 _RecoverAccountRequestDto _$RecoverAccountRequestDtoFromJson(
-  Map<String, dynamic> json,
-) => _RecoverAccountRequestDto(
-  email: json['email'] as String,
-  newAuthToken: json['new_auth_token'] as String,
-  newWrappedAccountKey: json['new_wrapped_account_key'] as String,
-);
+        Map<String, dynamic> json) =>
+    _RecoverAccountRequestDto(
+      email: json['email'] as String,
+      newAuthToken: json['new_auth_token'] as String,
+      newWrappedAccountKey: json['new_wrapped_account_key'] as String,
+    );
 
 Map<String, dynamic> _$RecoverAccountRequestDtoToJson(
-  _RecoverAccountRequestDto instance,
-) => <String, dynamic>{
-  'email': instance.email,
-  'new_auth_token': instance.newAuthToken,
-  'new_wrapped_account_key': instance.newWrappedAccountKey,
-};
+        _RecoverAccountRequestDto instance) =>
+    <String, dynamic>{
+      'email': instance.email,
+      'new_auth_token': instance.newAuthToken,
+      'new_wrapped_account_key': instance.newWrappedAccountKey,
+    };

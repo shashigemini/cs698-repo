@@ -60,8 +60,9 @@ class SpiritualQaApp extends ConsumerWidget {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
-          if (disableSecurity || kIsWeb)
+          if (disableSecurity || kIsWeb) {
             return child ?? const SizedBox.shrink();
+          }
 
           // Wrap the app to obscure screenshots in the background (app switcher)
           return SecureApplication(

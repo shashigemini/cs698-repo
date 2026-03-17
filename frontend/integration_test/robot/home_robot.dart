@@ -71,6 +71,37 @@ class HomeRobot {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
+  Future<void> tapBack() async {
+    debugPrint('Robot: Tapping Back button');
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  Future<void> waitForText(String text, {Duration timeout = const Duration(seconds: 10)}) async {
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsed < timeout) {
+      if (tester.any(find.textContaining(text))) {
+        debugPrint('Robot: Found expected text "$text" after ${stopwatch.elapsedMilliseconds}ms');
+        return;
+      }
+      if (stopwatch.elapsedMilliseconds % 1000 == 0) {
+        debugPrint('Robot: Still waiting for "$text" (${stopwatch.elapsed.inSeconds}s)...');
+      }
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    debugPrint('Robot: Timed out! Current UI finding for partial "involves spiritual":');
+    try {
+      final matches = find.textContaining('involves spiritual').evaluate();
+      debugPrint('Robot: Matches found: ${matches.length}');
+      for (final m in matches) {
+        debugPrint('Robot: Match content: ${(m.widget as Text).data}');
+      }
+    } catch (e) {
+      debugPrint('Robot: Error during debug dump: $e');
+    }
+    throw TestFailure('Timed out waiting for text: "$text"');
+  }
+
   Future<void> tapSuggestion(String suggestionText) async {
     debugPrint('Robot: Tapping suggestion: "$suggestionText"');
     await tester.tap(find.text(suggestionText));

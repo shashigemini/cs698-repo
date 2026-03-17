@@ -1,46 +1,55 @@
 # Security
 
-This page documents the security architecture, implemented hardening measures, and the future security roadmap for the CS698 platform.
+This page documents the security architecture, implemented hardening measures, and the future security roadmap for the Spiritual Q&A Platform.
 
-## End-to-End Encryption (E2EE)
+## Authentication Model
 
-The platform implements a robust E2EE layer to ensure that sensitive user data and conversation content remain private.
+The platform utilizes a robust JWT-based authentication system designed for both security and platform compatibility.
 
-### 1. Key Derivation Flow
-We use **Argon2id** for high-entropy key derivation from user passwords.
+### JWT Strategy
+- **Access Token**: Short-lived (15 min) token containing `user_id`, `role`, and expiration claims.
+- **Refresh Token**: Long-lived (7 days) token used to obtain new access tokens. Implements **token rotation**, where the old refresh token is revoked upon use.
 
-- **Local Master Key (LMK)**: Derived locally using Argon2id with a unique salt. The LMK never leaves the device.
-- **Client Auth Token**: Derived from the LMK using **HKDF-SHA256**. This token is used for standard API authentication (via JWT exchange) without ever exposing the raw password or the LMK to the server.
+### Token Storage by Platform
 
-### 2. Encryption Layers
-- **Account Key (AK)**: A random 256-bit AES key generated during registration. It is wrapped (encrypted) with the LMK using **AES-GCM** before being "backed up" to the server.
-- **Conversation Keys**: Messages are encrypted using individual conversation-scoped keys, ensuring that even if one key is compromised, the entire history remains secure.
-- **AAD (Additional Authenticated Data)**: We bind ciphertexts to specific `conversation_id` and `message_id` to prevent replay or substitution attacks.
+| Platform | Access Token | Refresh Token | CSRF Token |
+|----------|-------------|---------------|------------|
+| **Web** | HttpOnly Cookie | HttpOnly Cookie | Non-HttpOnly Cookie/Header |
+| **iOS** | Keychain (`flutter_secure_storage`) | Keychain | N/A |
+| **Android** | KeyStore (`flutter_secure_storage`) | KeyStore | N/A |
 
-### 3. Account Recovery
-To prevent permanent data loss if a device is lost, we implement a recovery mechanism using a **Recovery Wrapped Account Key (RWAK)**.
-- During setup, a high-entropy recovery code is generated.
-- The AK is wrapped with a key derived from this recovery code and stored on the server.
-- This allows the user to restore their account on a new device without the original LMK, provided they have their recovery code.
+## Hardening Measures
 
-## Implemented Hardening Measures
-
-### 1. Zero-Log Policy & Scrubbing
-To prevent accidental leakage of sensitive data in diagnostics:
-- **Scrubbing**: `AppLogger.scrub()` redacts `password`, `token`, `lmk`, and `ak` fields.
-- **Interception**: The `HttpInterceptor` scrubs logs before they reach the console or persistent storage.
-
-### 2. Runtime Protection (freeRASP)
+### 1. Runtime Protection (freeRASP)
 The mobile applications are protected by **freeRASP** for real-time threat detection:
 - **Integrity Checks**: Detects if the app has been tampered with or resigned.
 - **Environment Checks**: Detects Root/Jailbreak, Emulators, and Hooking frameworks (e.g., Frida).
-- **Proactive Response**: In production, the app will securely exit if a critical threat is detected.
 
 > [!IMPORTANT]
-> **Initialization Robustness**: `freeRASP` configuration and initialization MUST be wrapped in a `try-catch` block. Failure to do so can cause the app to hang on startup if environment variables are missing or platform-specific initialization fails.
+> **Initialization Robustness**: `freeRASP` configuration and initialization must be wrapped in a `try-catch` block to prevent startup hangs if environment variables are missing or platform-specific initialization fails.
 
-### 3. Certificate Pinning
-Strict SHA-256 certificate pinning is enforced via the `http_certificate_pinning` package to mitigate Man-in-the-Middle (MitM) attacks.
+### 2. Zero-Log Policy & Scrubbing
+To prevent accidental leakage of sensitive data in diagnostics:
+- **Scrubbing**: The `AppLogger.scrub()` utility redacts `password`, `token`, and `email` fields from all network diagnostic data.
+- **Interception**: A custom `HttpInterceptor` ensures logs are scrubbed before they reach the console or persistent storage.
+
+### 3. Transport Security
+- **HTTPS Only**: All traffic is enforced over TLS 1.2+ with HSTS enabled.
+- **Certificate Pinning**: Strict SHA-256 certificate pinning is enforced via `http_certificate_pinning` on mobile.
+- **CORS**: Web origins are strictly restricted to allowed production domains.
+
+## Data Privacy
+
+### Account Deletion Flow
+In compliance with international privacy standards, users can permanently delete their data:
+1. **Request**: User initiates delete from the app settings.
+2. **Backend Execution**: The server verifies the JWT, then performs a cascading delete of the `users` record, which automatically removes all associated `chat_sessions` and `chat_messages`.
+3. **Completion**: All active tokens are invalidated, and the client clears local secure storage.
+
+### Guest Anonymity
+Guest users have a zero-persistence policy:
+- `guest_session_id` is a random UUID used solely for rate limiting.
+- Guest conversations are processed in-memory and are **never** persisted to the database or logged.
 
 ## Security Roadmap
 
@@ -48,6 +57,6 @@ Strict SHA-256 certificate pinning is enforced via the `http_certificate_pinning
 | :--- | :--- | :--- |
 | **App Attestation** | Planned | Play Integrity / DeviceCheck backend verification. |
 | **Request Signing** | Planned | Backend signature verification (HMAC). |
-| **Security Headers** | In Progress | Server-side HSTS/CSP/X-Frame-Options. |
+| **WAF Integration** | In Progress | Cloud-layer protection against common web attacks. |
 
-For a detailed task breakdown, see [SECURITY_ROADMAP.md](https://github.com/shashigemini/cs698-repo/blob/main/docs/SECURITY_ROADMAP.md).
+For a detailed task breakdown, see [SECURITY_ROADMAP.md](file:///workspaces/cs698-repo/docs/SECURITY_ROADMAP.md).

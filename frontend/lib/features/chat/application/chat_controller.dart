@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/services/guest_service.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/providers/chat_repository_provider.dart';
+import '../domain/models/conversation.dart';
 import '../domain/models/message.dart';
 import 'chat_state.dart';
 
@@ -35,8 +38,14 @@ class ChatController extends _$ChatController {
   Future<void> _init() async {
     try {
       final guestService = ref.read(guestServiceProvider);
-      final repo = ref.read(chatRepositoryProvider);
-      final conversations = await repo.getConversations();
+      final authState = ref.read(authControllerProvider);
+      var conversations = <Conversation>[];
+
+      // Only fetch conversations for authenticated real users to avoid 401 cascades
+      if (authState != null && authState != AppStrings.guestUserId) {
+        final repo = ref.read(chatRepositoryProvider);
+        conversations = await repo.getConversations();
+      }
 
       if (ref.mounted) {
         state = ChatState(
@@ -55,8 +64,12 @@ class ChatController extends _$ChatController {
   }
 
   Future<void> sendQuery(String query, {String? guestSessionId}) async {
+    debugPrint('ChatController: sendQuery called with: "$query", guestSessionId: $guestSessionId');
     final currentState = state;
-    if (currentState.isLoading || currentState.rateLimitExceeded) return;
+    if (currentState.isLoading || currentState.rateLimitExceeded) {
+      debugPrint('ChatController: sendQuery blocked. isLoading: ${currentState.isLoading}, rateLimitExceeded: ${currentState.rateLimitExceeded}');
+      return;
+    }
 
     if (guestSessionId != null && currentState.guestQueriesRemaining <= 0) {
       state = currentState.copyWith(
@@ -88,6 +101,7 @@ class ChatController extends _$ChatController {
         guestSessionId: guestSessionId,
       );
 
+      debugPrint('ChatController: received answer: "${result.answer}"');
       final assistantMsg = Message(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         sender: 'assistant',
@@ -103,15 +117,22 @@ class ChatController extends _$ChatController {
         await guestService.incrementUsage();
       }
 
+      final isNewConversation = currentState.conversationId == null;
+
       state = state.copyWith(
         messages: [...state.messages, assistantMsg],
         conversationId: result.conversationId,
         isLoading: false,
         guestQueriesRemaining: guestService.getQueriesRemaining(),
       );
+
+      if (isNewConversation && guestSessionId == null) {
+        await fetchRecentConversations();
+      }
     } catch (e, st) {
       if (!ref.mounted) return;
       final updatedState = state;
+      debugPrint('ChatController: sendQuery failed with error: $e');
       AppLogger.e('ChatController error', error: e, stackTrace: st);
       if (e.toString().contains('RateLimitException')) {
         state = updatedState.copyWith(

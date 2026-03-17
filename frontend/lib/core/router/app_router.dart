@@ -9,6 +9,8 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/startup/presentation/startup_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/admin/presentation/admin_screen.dart';
+import '../../features/admin/application/admin_controller.dart';
 
 part 'app_router.g.dart';
 
@@ -21,6 +23,7 @@ part 'app_router.g.dart';
 @riverpod
 GoRouter goRouter(Ref ref) {
   final authState = ref.watch(authControllerProvider);
+  final isInitialized = ref.watch(authInitializationProvider);
 
   // Note: For riverpod_generator AsyncNotifiers, if we want to trigger a refresh
   // on every stream emission, we can either use ref.listen on the provider itself,
@@ -34,8 +37,17 @@ GoRouter goRouter(Ref ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final isLoggedIn = authState != null;
-      final isLoggingIn = state.uri.toString() == '/login';
-      final isOnStartup = state.uri.toString() == '/';
+      final isAdminUser = ref.read(isAdminProvider);
+      
+      final uriStr = state.uri.toString();
+      final isLoggingInOrRegistering = uriStr == '/login' || uriStr == '/register';
+      final isOnStartup = uriStr == '/';
+      final isTryingToAdmin = uriStr.startsWith('/admin');
+
+      if (!isInitialized) {
+        // Stay on startup until auth state is definitively known
+        return isOnStartup ? null : '/';
+      }
 
       if (isOnStartup && isLoggedIn) {
         AppLogger.d(
@@ -43,24 +55,34 @@ GoRouter goRouter(Ref ref) {
         );
         return '/home';
       } else if (isOnStartup && !isLoggedIn) {
-        // Stay on startup until StartupScreen navigates
-        return null;
+        // Once initialized and not logged in, go to login
+        AppLogger.d(
+          'AppRouter: Auth initialized, redirecting guest from startup to login',
+        );
+        return '/login';
       }
 
-      if (!isLoggedIn && !isLoggingIn) {
+      if (!isLoggedIn && !isLoggingInOrRegistering) {
         AppLogger.d(
           'AppRouter: Redirecting unauthenticated user to login',
-          error: {'destination': state.uri.toString()},
+          error: {'destination': uriStr},
         );
         // Not logged in and accessing protected route -> Login
         return '/login';
       }
 
-      if (isLoggedIn && isLoggingIn) {
+      if (isLoggedIn && isLoggingInOrRegistering) {
         AppLogger.d(
-          'AppRouter: Redirecting logged-in user away from login to home',
+          'AppRouter: Redirecting logged-in user away from auth screen to home',
         );
-        // Logged in and accessing login -> Home
+        // Logged in and accessing login/register -> Home
+        return '/home';
+      }
+
+      if (isLoggedIn && isTryingToAdmin && !isAdminUser) {
+        AppLogger.w(
+          'AppRouter: Unauthorized access attempt to admin panel',
+        );
         return '/home';
       }
 
@@ -69,10 +91,18 @@ GoRouter goRouter(Ref ref) {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const StartupScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const LoginScreen(initialLoginState: false),
+      ),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminScreen(),
       ),
     ],
   );

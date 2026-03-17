@@ -19,21 +19,31 @@ import '../application/auth_controller.dart';
 /// Provides a tabbed interface that toggles between Login and
 /// Register form. Also offers a "Continue as Guest" option.
 class LoginScreen extends ConsumerStatefulWidget {
+  /// Whether the screen should initially display the login tab.
+  /// If false, displays the register tab.
+  final bool initialLoginState;
+
   /// Creates a [LoginScreen].
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.initialLoginState = true});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _isLogin = true; // Toggle between Login and Register
+  late bool _isLogin; // Toggle between Login and Register
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _registerEmailController = TextEditingController();
   final _registerPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLogin = widget.initialLoginState;
+  }
 
   Future<void> _handleAuth() async {
     final email = _isLogin

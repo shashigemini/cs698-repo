@@ -20,19 +20,6 @@ class StartupScreen extends StatefulWidget {
 
 class _StartupScreenState extends State<StartupScreen> {
   @override
-  void initState() {
-    super.initState();
-    // Simulate initialization / token check
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        // Try to access Home. Router will redirect to Login if unauthenticated.
-        // This ensures fully testing the redirect logic.
-        context.go('/home');
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return GradientScaffold(
       body: Center(

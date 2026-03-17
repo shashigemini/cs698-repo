@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import '../constants/app_strings.dart';
 import '../services/storage_service.dart';
 import '../exceptions/app_exceptions.dart';
 import '../../../features/auth/domain/models/token_pair.dart';
@@ -33,18 +35,12 @@ class HttpInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    AppLogger.d(
-      'HttpInterceptor: onRequest',
-      error: {
-        'method': options.method,
-        'path': options.path,
-        'headers': AppLogger.scrub(options.headers),
-        if (options.data is Map<String, dynamic>)
-          'data': AppLogger.scrub(options.data as Map<String, dynamic>),
-      },
-    );
+    AppLogger.w('🔥 HttpInterceptor: onRequest ${options.method} ${options.path}');
 
+    AppLogger.w('🔥 HttpInterceptor: Calling _storage.getTokens()');
     final tokens = await _storage.getTokens();
+    AppLogger.w('🔥 HttpInterceptor: Finished _storage.getTokens()');
+    
     if (tokens != null) {
       options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
     }
@@ -54,7 +50,14 @@ class HttpInterceptor extends Interceptor {
       options.headers['X-CSRF-Token'] = csrf;
     }
 
+    AppLogger.w('🔥 HttpInterceptor: Calling handler.next()');
     handler.next(options);
+  }
+
+  @override
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+    debugPrint('HttpInterceptor: onResponse ${response.statusCode} ${response.requestOptions.path}');
+    handler.next(response);
   }
 
   @override
@@ -62,40 +65,50 @@ class HttpInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    debugPrint('HttpInterceptor: onError ${err.type} ${err.response?.statusCode} ${err.requestOptions.path}');
+    debugPrint('HttpInterceptor: error data: ${err.response?.data}');
     if (err.response?.statusCode == 401) {
-      AppLogger.w(
-        'HttpInterceptor: 401 response received, attempting token refresh',
-      );
-      final refreshed = await _attemptTokenRefresh();
-      if (refreshed) {
-        AppLogger.i(
-          'HttpInterceptor: Token refreshed successfully, retrying original request',
-        );
-        // Retry original request with new token
-        final tokens = await _storage.getTokens();
-        if (tokens != null) {
-          err.requestOptions.headers['Authorization'] =
-              'Bearer ${tokens.accessToken}';
-        }
-        try {
-          final response = await _dio.fetch<dynamic>(err.requestOptions);
-          handler.resolve(response);
-          return;
-        } catch (e) {
-          AppLogger.e(
-            'HttpInterceptor: Retry request failed after token refresh',
-            error: e,
-          );
-          // Fall through to default error handling
-        }
+      final path = err.requestOptions.path;
+      // Don't attempt refresh for auth endpoints themselves
+      if (path.contains('/api/auth/login') ||
+          path.contains('/api/auth/register') ||
+          path.contains('/api/auth/refresh')) {
+        AppLogger.d('HttpInterceptor: Skipping refresh for auth endpoint: $path');
       } else {
-        AppLogger.w('HttpInterceptor: Token refresh failed');
+        AppLogger.w(
+          'HttpInterceptor: 401 response received, attempting token refresh',
+        );
+        final refreshed = await _attemptTokenRefresh();
+        if (refreshed) {
+          AppLogger.i(
+            'HttpInterceptor: Token refreshed successfully, retrying original request',
+          );
+          // Retry original request with new token
+          final tokens = await _storage.getTokens();
+          if (tokens != null) {
+            err.requestOptions.headers['Authorization'] =
+                'Bearer ${tokens.accessToken}';
+          }
+          try {
+            final response = await _dio.fetch<dynamic>(err.requestOptions);
+            handler.resolve(response);
+            return;
+          } catch (e) {
+            AppLogger.e(
+              'HttpInterceptor: Retry request failed after token refresh',
+              error: e,
+            );
+            // Fall through to default error handling
+          }
+        } else {
+          AppLogger.w('HttpInterceptor: Token refresh failed');
+        }
       }
     }
 
     // Map known error codes
     final code = err.response?.data is Map
-        ? (err.response?.data as Map)['code'] as String?
+        ? (err.response?.data as Map)['error_code'] as String?
         : null;
     if (code != null) {
       handler.reject(
@@ -150,13 +163,17 @@ class HttpInterceptor extends Interceptor {
   String _mapErrorCode(String code) {
     switch (code) {
       case 'INVALID_CREDENTIALS':
-        return 'Invalid email or password';
+        return AppStrings.invalidCredentials;
       case 'EMAIL_ALREADY_EXISTS':
         return 'An account with this email already exists';
       case 'TOKEN_EXPIRED':
         return 'Session expired. Please sign in again';
       case 'RATE_LIMIT_EXCEEDED':
         return 'Rate limit exceeded';
+      case 'LLM_ERROR':
+        return 'AI service temporarily unavailable';
+      case 'RETRIEVAL_ERROR':
+        return 'Document retrieval service temporarily unavailable';
       default:
         return 'An unexpected error occurred';
     }

@@ -43,7 +43,7 @@ void main() {
 
     test('sendQuery updates state correctly on success', () async {
       final container = await createContainer();
-      container.listen(chatControllerProvider, (_, _) {});
+      container.listen(chatControllerProvider, (previous, next) {});
 
       final controller = container.read(chatControllerProvider.notifier);
       await controller.initialized;
@@ -95,7 +95,7 @@ void main() {
       final container = await createContainer();
       final controller = container.read(chatControllerProvider.notifier);
       await controller.initialized;
-      container.listen(chatControllerProvider, (_, _) {});
+      container.listen(chatControllerProvider, (previous, next) {});
 
       final initial = AppStrings.guestQueryLimit;
       expect(
@@ -124,7 +124,7 @@ void main() {
 
     test('loadConversation updates state correctly on success', () async {
       final container = await createContainer();
-      container.listen(chatControllerProvider, (_, _) {});
+      container.listen(chatControllerProvider, (previous, next) {});
 
       final controller = container.read(chatControllerProvider.notifier);
       await controller.initialized;
@@ -164,7 +164,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      container.listen(chatControllerProvider, (_, _) {});
+      container.listen(chatControllerProvider, (previous, next) {});
 
       final controller = container.read(chatControllerProvider.notifier);
       await controller.initialized;

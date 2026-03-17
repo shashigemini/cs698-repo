@@ -69,8 +69,8 @@ class AuthRobot {
     await tester.ensureVisible(registerButton);
     await tester.tap(registerButton);
     // We use a manual pump here because registration triggers a dialog
-    // and Windows often hangs on pumpAndSettle during dialog animations.
-    await tester.pump(const Duration(milliseconds: 1000));
+    // and Windows/Linux often hangs on pumpAndSettle during dialog animations.
+    await tester.pump(const Duration(milliseconds: 2000));
   }
 
   Future<void> tapGuestLogin() async {
@@ -103,6 +103,7 @@ class AuthRobot {
   }
 
   Future<void> confirmMnemonic() async {
+    await tester.ensureVisible(mnemonicConfirmButton);
     await tester.tap(mnemonicConfirmButton);
     // Explicitly avoid pumpAndSettle here as it redirects to Home
     await tester.pump(const Duration(milliseconds: 1500));

@@ -19,7 +19,11 @@ abstract class RegisterRequestDto with _$RegisterRequestDto {
   const factory RegisterRequestDto({
     required String email,
     required String password,
-    required String fullName,
+    String? fullName,
+    String? clientAuthToken,
+    String? salt,
+    String? wrappedAccountKey,
+    String? recoveryWrappedAk,
   }) = _RegisterRequestDto;
 
   factory RegisterRequestDto.fromJson(Map<String, dynamic> json) =>

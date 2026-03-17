@@ -7,6 +7,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../admin/presentation/admin_screen.dart';
 import '../../../core/presentation/widgets/glass_container.dart';
 import '../../../core/presentation/widgets/gradient_scaffold.dart';
 import '../../../theme/app_theme.dart';
@@ -172,60 +173,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         iconTheme: const IconThemeData(color: AppTheme.gray900),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: chatState.messages.isEmpty
-                ? _EmptyStateView(
-                    onSuggestionTap: (text) {
-                      _messageController.text = text;
-                      _sendMessage();
-                    },
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(24),
-                    itemCount:
-                        chatState.messages.length +
-                        (chatState.isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == chatState.messages.length) {
-                        return const _TypingIndicator();
-                      }
-                      final msg = chatState.messages[index];
-                      final isUser = msg.sender == 'user';
-                      return Align(
-                        alignment: isUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          constraints: const BoxConstraints(maxWidth: 600),
-                          child: isUser
-                              ? _UserMessageBubble(message: msg)
-                              : _AssistantMessageBubble(message: msg),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          if (chatState.rateLimitExceeded)
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.red.withValues(alpha: 0.1),
-              child: Text(
-                AppStrings.rateLimitBanner,
-                style: GoogleFonts.inter(color: Colors.red),
-                key: const Key('rate_limit_banner'),
-              ),
-            ),
-          _ChatInputBar(
-            controller: _messageController,
-            isDisabled: chatState.isLoading || chatState.rateLimitExceeded,
-            onSend: _sendMessage,
-          ),
-        ],
-      ),
+      body: const AdminScreen(),
     );
   }
 }

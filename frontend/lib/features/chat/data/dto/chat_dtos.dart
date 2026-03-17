@@ -18,9 +18,9 @@ abstract class QueryRequestDto with _$QueryRequestDto {
 abstract class AnswerResponseDto with _$AnswerResponseDto {
   const factory AnswerResponseDto({
     required String answer,
-    required String conversationId,
-    required List<CitationDto> citations,
-    required List<String> suggestions,
+    String? conversationId,
+    @Default([]) List<CitationDto> citations,
+    @Default([]) List<String> suggestions,
   }) = _AnswerResponseDto;
 
   factory AnswerResponseDto.fromJson(Map<String, dynamic> json) =>
@@ -30,9 +30,12 @@ abstract class AnswerResponseDto with _$AnswerResponseDto {
 @freezed
 abstract class CitationDto with _$CitationDto {
   const factory CitationDto({
-    required String sourceTitle,
-    required String sourceUrl,
-    required String snippet,
+    required String documentId,
+    required String title,
+    required int page,
+    required String paragraphId,
+    double? relevanceScore,
+    String? passageText,
   }) = _CitationDto;
 
   factory CitationDto.fromJson(Map<String, dynamic> json) =>

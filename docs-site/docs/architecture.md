@@ -1,84 +1,97 @@
-# Frontend Architecture
+# System Architecture
 
-This document outlines the architectural patterns and layered structure of the Spiritual Q&A Platform's frontend.
+This document provides a high-level overview of the Spiritual Q&A Platform's architecture, including its components, data flow, and technology stack.
 
-## Overview
-
-The application is built using Flutter and follows a feature-based, layered architecture designed for testability, maintainability, and clear separation of concerns.
-
-### C4 Model - System Container
+## High-Level System Diagram
 
 ```mermaid
-graph TD
-    User["User (Mobile/Web)"]
-    
-    subgraph Client["Flutter Container"]
-        UI["Presentation Layer (Widgets)"]
-        APP["Application Layer (Controllers)"]
-        DOMAIN["Domain Layer (Models/Interfaces)"]
-        DATA["Data Layer (Repositories/Services)"]
+flowchart LR
+    subgraph Client["Client (Flutter Web/iOS/Android)"]
+        S["Startup Logic"]
+        AUIS["Auth Screens<br/>(Guest/Login/Register)"]
+        CH["Chat Screen<br/>(Guest & Auth)"]
+        LS["StorageService<br/>(tokens & guest_session_id)"]
     end
-    
-    API["FastAPI Backend"]
-    STORAGE["Local Secure Storage"]
-    
-    User --> UI
-    UI --> APP
-    APP --> DOMAIN
-    DOMAIN --> DATA
-    DATA --> API
-    DATA --> STORAGE
+
+    subgraph Backend["Backend (FastAPI, Python)"]
+        subgraph AuthLayer["Auth & Security"]
+            AUTH_EPS["/Auth endpoints<br/>/auth/*"]
+            AU["AuthService<br/>(JWT/OAuth2 + password hashing + deletion)"]
+        end
+
+        subgraph ChatLayer["Chat & RAG"]
+            CHAT_EP["/POST /api/chat/query/"]
+            RL["RateLimiter<br/>(IP + guest_session_id)"]
+            RAG["RAGService<br/>(LlamaIndex + OpenAI GPT-4o-mini)"]
+        end
+    end
+
+    subgraph Data["Data & Storage"]
+        P[("PostgreSQL<br/>users, sessions, messages, documents")]
+        Q[("Qdrant Vector DB")]
+        FS["/Local PDF Storage/"]
+    end
+
+    subgraph LLM["LLM Provider"]
+        O["OpenAI GPT-4o-mini API"]
+    end
+
+    S --> LS
+    S --> AUIS
+    AUIS --> AUTH_EPS
+    AUIS --> CH
+    CH --> CHAT_EP
+
+    AUTH_EPS --> AU
+    AU --> P
+    P --> AU
+
+    CHAT_EP --> RL
+    CHAT_EP --> AU
+    CHAT_EP --> RAG
+
+    RAG --> Q
+    Q --> RAG
+    RAG --> FS
+    RAG --> O
+    O --> RAG
+
+    CHAT_EP --> P
+    CHAT_EP --> CH
 ```
 
-## Layered Architecture
+## Component Deployment
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Flutter Client** | Dart / Flutter | Cross-platform UI (Web, iOS, Android) |
+| **FastAPI Backend** | Python / FastAPI | REST API, Auth, and RAG orchestration |
+| **PostgreSQL** | Relational DB | User data, session persistence, document metadata |
+| **Qdrant** | Vector DB | Semantic search and document chunk storage |
+| **LlamaIndex** | RAG Framework | Orchestrating retrieval and LLM response |
+| **OpenAI API** | GPT-4o-mini | Natural language generation |
+
+## Frontend Layered Architecture
+
+The application follows a feature-based, layered architecture designed for testability and maintainability.
 
 ### 1. Presentation Layer (`lib/features/*/presentation`)
-Responsible for building the user interface.
-- **Widgets**: Pure UI components.
-- **Screens**: Orchestrate multiple widgets and watch application state.
-- **Rule**: Presentation should never touch Repositories directly. It interacts only with Controllers/Providers.
+- **Widgets**: Reusable UI components.
+- **Screens**: Orchestrate multiple widgets and watch application state via Riverpod.
 
 ### 2. Application Layer (`lib/features/*/application`)
-Orchestrates business logic and maintains UI state.
-- **Controllers**: (Riverpod `AsyncNotifier` or `StateNotifier`) respond to user actions and update state.
-- **Providers**: Expose controllers to the UI layer.
+- **Controllers**: (Riverpod `AsyncNotifier`) Orchestrate business logic and maintain UI state.
 
 ### 3. Domain Layer (`lib/features/*/domain`)
-The core "truth" of the application.
-- **Models**: Immutable data structures (using `@freezed`).
-- **Interfaces**: Abstract definitions of repositories to facilitate mocking in tests.
+- **Models**: Immutable data structures (Freezed).
+- **Interfaces**: Abstract definitions for repositories.
 
 ### 4. Data Layer (`lib/features/*/data`)
-Handles external data sources.
-- **Repositories**: Implementation of domain interfaces that make HTTP calls.
+- **Repositories**: Implementation of domain interfaces making network calls.
 - **Services**: Platform-specific abstractions (Storage, Security).
-
-## Core Abstractions
-
-### Security & Cryptography
-We implement a zero-trust model for user data:
-- **CryptographyService**: Manages Argon2id key derivation, AES-GCM wrapping, and message encryption.
-- **SecurityService**: Orchestrates **freeRASP** for runtime application self-protection.
-- **Rule**: All sensitive user data must be encrypted before persistence or transmission.
-
-### Network Interop
-We use **Dio** with a custom `HttpInterceptor` to handle:
-- Automatic token refresh logic.
-- Standardized error mapping from API codes to Dart exceptions.
-- Global loading/error states.
-- Redaction of sensitive fields in diagnostics via `AppLogger.scrub()`.
 
 ## Entry Points
 
-### Production (`lib/main.dart`)
-The standard entry point for regular users. Initializes core services with production configurations and starts the application.
-
-### Developer/Automation (`lib/main_dev.dart`)
-A specialized entry point for development and test automation.
-- **Mock Overrides**: Allows overriding repositories (e.g., `mockAuthRepositoryProvider`) for isolated testing.
-- **Marionette Integration**: Includes `MarionetteBinding` to facilitate AI-driven UI testing and automation.
-- **High Verbosity**: Configures `AppLogger` to trace level for detailed diagnostics.
-
-## Resilience
-The platform uses strict certificate pinning and platform-specific secure storage to ensure resilience against advanced attack vectors.
+- **Production (`lib/main.dart`)**: Initializes core services and starts the app.
+- **Development (`lib/main_dev.dart`)**: Includes mock overrides and **Marionette** integration for automated testing.
 

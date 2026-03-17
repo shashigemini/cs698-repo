@@ -15,15 +15,15 @@ final chatControllerProvider = ChatControllerProvider._();
 final class ChatControllerProvider
     extends $NotifierProvider<ChatController, ChatState> {
   ChatControllerProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'chatControllerProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'chatControllerProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$chatControllerHash();
@@ -41,7 +41,7 @@ final class ChatControllerProvider
   }
 }
 
-String _$chatControllerHash() => r'97faa94648af0eff4cf9b1e3f00f0442c1e00539';
+String _$chatControllerHash() => r'a831a5f99969e9af8c035fd1f0e6ea6b000b548d';
 
 abstract class _$ChatController extends $Notifier<ChatState> {
   ChatState build();
@@ -49,14 +49,8 @@ abstract class _$ChatController extends $Notifier<ChatState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<ChatState, ChatState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<ChatState, ChatState>,
-              ChatState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<ChatState, ChatState>, ChatState, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }

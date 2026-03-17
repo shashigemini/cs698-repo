@@ -15,7 +15,7 @@ class AppLogger {
   ///
   /// Must be called before [runApp] in `main.main()`.
   /// [level] defines the minimum verbosity. Default is [Level.info].
-  static Future<void> init({Level level = Level.info}) async {
+  static Future<void> init({Level level = Level.info, LogOutput? additionalOutput}) async {
     if (_initialized) return;
 
     var outputs = <LogOutput>[];
@@ -23,6 +23,10 @@ class AppLogger {
     // Console output for debug/profile mode
     if (kDebugMode || kProfileMode) {
       outputs.add(ConsoleOutput());
+    }
+    
+    if (additionalOutput != null) {
+      outputs.add(additionalOutput);
     }
 
     // File output (not supported on Web in the same way, path_provider might throw)

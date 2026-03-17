@@ -28,4 +28,18 @@ class AnswerResult {
     this.conversationId,
     this.metadata,
   });
+
+  /// Creates an [AnswerResult] from a JSON map.
+  factory AnswerResult.fromJson(Map<String, dynamic> json) {
+    return AnswerResult(
+      answer: json['answer'] as String,
+      citations:
+          (json['citations'] as List<dynamic>?)
+              ?.map((e) => Citation.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      conversationId: json['conversation_id'] as String?,
+      metadata: json['metadata'] as Map<String, dynamic>?,
+    );
+  }
 }

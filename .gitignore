@@ -52,3 +52,19 @@ Thumbs.db
 .idea/
 *.log
 exported_conversations/
+*_results.txt
+*_results.json
+*_results_utf8.json
+test_out*.json
+test_out*.txt
+e2e_*.log
+e2e_*.json
+*_screenshot.png
+*.html
+
+# Security — never commit keys or sensitive data
+*.pem
+*.key
+data/pdfs/
+.gemini/
+test_data/

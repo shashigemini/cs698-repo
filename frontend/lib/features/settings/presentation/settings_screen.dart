@@ -9,6 +9,10 @@ import '../../../theme/app_theme.dart';
 import '../../chat/application/chat_controller.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/widgets/change_password_dialog.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../../core/providers/demo_mode_provider.dart';
+import '../../admin/application/admin_controller.dart';
 import '../../chat/domain/models/conversation.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -218,6 +222,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            if (ref.watch(isDemoModeProvider)) ...[
+              const SizedBox(height: 48),
+              const Divider(),
+              const SizedBox(height: 24),
+              const _DemoAdminPanel(),
+            ],
           ],
         ),
       ),
@@ -327,6 +337,165 @@ class _HistoryListItem extends StatelessWidget {
           // Placeholder for selecting conversation
         },
       ),
+    );
+  }
+}
+
+class _DemoAdminPanel extends ConsumerStatefulWidget {
+  const _DemoAdminPanel();
+
+  @override
+  ConsumerState<_DemoAdminPanel> createState() => _DemoAdminPanelState();
+}
+
+class _DemoAdminPanelState extends ConsumerState<_DemoAdminPanel> {
+  final _titleController = TextEditingController();
+  final _authorController = TextEditingController();
+  final _idController = TextEditingController();
+  PlatformFile? _selectedFile;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _authorController.dispose();
+    _idController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result != null) {
+      setState(() => _selectedFile = result.files.first);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final adminState = ref.watch(adminControllerProvider);
+    final isLoading = adminState.isLoading;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppStrings.demoAdminTitle,
+          style: GoogleFonts.outfit(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.gray900,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GlassContainer(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.demoUploadPdf,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.demoPdfTitle,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _authorController,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.demoPdfAuthor,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _idController,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.demoPdfLogicalId,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _pickFile,
+                icon: const Icon(LucideIcons.fileText),
+                label: Text(
+                  _selectedFile?.name ?? 'Select PDF',
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (_selectedFile == null ||
+                          _titleController.text.isEmpty ||
+                          _idController.text.isEmpty ||
+                          isLoading)
+                      ? null
+                      : () async {
+                          final success = await ref
+                              .read(
+                                adminControllerProvider.notifier,
+                              )
+                              .ingestDocument(
+                                fileBytes: _selectedFile!.bytes!,
+                                filename: _selectedFile!.name,
+                                title: _titleController.text,
+                                logicalBookId: _idController.text,
+                                author: _authorController.text.isEmpty
+                                    ? null
+                                    : _authorController.text,
+                              );
+                          if (success) {
+                            _showSnackBar(
+                              AppStrings.demoPdfIngested,
+                            );
+                            setState(
+                              () => _selectedFile = null,
+                            );
+                            _titleController.clear();
+                            _authorController.clear();
+                            _idController.clear();
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          AppStrings.demoUploadButton,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
