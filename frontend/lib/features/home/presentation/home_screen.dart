@@ -16,6 +16,7 @@ import '../../chat/domain/models/citation.dart';
 import '../../chat/domain/models/message.dart';
 import '../../chat/domain/models/conversation.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../admin/application/admin_controller.dart';
 
 /// Main chat screen for both guest and authenticated users.
 ///
@@ -123,11 +124,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final chatState = ref.watch(chatControllerProvider);
     final currentUser = ref.watch(authControllerProvider);
     final isGuest = currentUser == AppStrings.guestUserId;
+    final isAdminUser = ref.watch(isAdminProvider);
 
     return GradientScaffold(
       drawer: _HomeDrawer(
         chatState: chatState,
         isGuest: isGuest,
+        isAdmin: isAdminUser,
         userEmail: isGuest ? null : currentUser,
         onNewConversation: () {
           ref.read(chatControllerProvider.notifier).newConversation();
@@ -136,6 +139,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onSettings: () {
           Navigator.pop(context);
           context.push('/settings');
+        },
+        onAdmin: () {
+          Navigator.pop(context);
+          context.push('/admin');
         },
         onSelectConversation: (id) {
           ref.read(chatControllerProvider.notifier).loadConversation(id);
@@ -234,9 +241,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 class _HomeDrawer extends StatelessWidget {
   final ChatState chatState;
   final bool isGuest;
+  final bool isAdmin;
   final String? userEmail;
   final VoidCallback onNewConversation;
   final VoidCallback onSettings;
+  final VoidCallback onAdmin;
   final ValueChanged<String> onSelectConversation;
   final VoidCallback onSignIn;
   final VoidCallback onLogout;
@@ -244,9 +253,11 @@ class _HomeDrawer extends StatelessWidget {
   const _HomeDrawer({
     required this.chatState,
     required this.isGuest,
+    required this.isAdmin,
     this.userEmail,
     required this.onNewConversation,
     required this.onSettings,
+    required this.onAdmin,
     required this.onSelectConversation,
     required this.onSignIn,
     required this.onLogout,
@@ -325,11 +336,12 @@ class _HomeDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _DrawerMenuItem(
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _DrawerMenuItem(
                     icon: LucideIcons.circlePlus,
                     label: AppStrings.drawerNewConversation,
                     color: AppTheme.teal500,
@@ -359,6 +371,16 @@ class _HomeDrawer extends StatelessWidget {
                       color: AppTheme.purple500,
                       onTap: onSettings,
                     ),
+                    if (isAdmin) ...[
+                      const SizedBox(height: 16),
+                      _DrawerMenuItem(
+                        icon: LucideIcons.layoutDashboard,
+                        label: 'Admin Dashboard',
+                        color: AppTheme.teal500,
+                        onTap: onAdmin,
+                        itemKey: const Key('admin_dashboard_menu_item'),
+                      ),
+                    ],
                   ],
                   if (!isGuest && chatState.recentConversations.isNotEmpty) ...[
                     const SizedBox(height: 32),
@@ -392,7 +414,7 @@ class _HomeDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            const Spacer(),
+            ),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
@@ -671,9 +693,23 @@ class _AssistantMessageBubble extends StatelessWidget {
                       fontSize: 16,
                       height: 1.5,
                     ),
+                    a: GoogleFonts.inter(
+                      color: AppTheme.teal500,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                   onTapLink: (text, href, title) async {
                     if (href != null) {
+                      if (href.startsWith('#citation-')) {
+                        final indexStr = href.replaceFirst('#citation-', '');
+                        final indexStrParsed = int.tryParse(indexStr);
+                        if (indexStrParsed != null && 
+                            indexStrParsed > 0 && 
+                            indexStrParsed <= message.citations.length) {
+                          _showCitationSheet(context, message.citations[indexStrParsed - 1]);
+                          return;
+                        }
+                      }
                       final url = Uri.parse(href);
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url);
@@ -759,71 +795,83 @@ class _AssistantMessageBubble extends StatelessWidget {
   void _showCitationSheet(BuildContext context, Citation citation) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => GlassContainer(
-        padding: const EdgeInsets.all(24),
-        borderRadius: 24,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      builder: (context) => SafeArea(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: GlassContainer(
+            padding: const EdgeInsets.all(24),
+            borderRadius: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  LucideIcons.bookOpen,
-                  color: AppTheme.teal500,
-                  size: 20,
+                Row(
+                  children: [
+                    const Icon(
+                      LucideIcons.bookOpen,
+                      color: AppTheme.teal500,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        AppStrings.scriptureVerseTitle,
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.gray900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(LucideIcons.x),
+                      tooltip: AppStrings.a11yClose,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    AppStrings.scriptureVerseTitle,
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.gray900,
+                const SizedBox(height: 16),
+                Text(
+                  citation.title,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.gray700,
+                  ),
+                ),
+                Text(
+                  'Page ${citation.page}',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.gray700),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: Text(
+                        citation.passageText ?? 'Verifying source context...',
+                        style: GoogleFonts.notoSerif(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: AppTheme.gray900,
+                          height: 1.6,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(LucideIcons.x),
-                  tooltip: AppStrings.a11yClose,
-                  onPressed: () => Navigator.pop(context),
-                ),
+                const SizedBox(height: 24),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              citation.title,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.gray700,
-              ),
-            ),
-            Text(
-              'Page ${citation.page}',
-              style: GoogleFonts.inter(fontSize: 12, color: AppTheme.gray700),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white),
-              ),
-              child: Text(
-                citation.passageText ?? 'Verifying source context...',
-                style: GoogleFonts.notoSerif(
-                  fontSize: 16,
-                  fontStyle: FontStyle.italic,
-                  color: AppTheme.gray900,
-                  height: 1.6,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );

@@ -15,6 +15,8 @@ import 'features/chat/data/providers/chat_repository_provider.dart';
 import 'features/chat/data/providers/api_chat_repository_provider.dart';
 import 'features/admin/data/repositories/api_admin_repository.dart';
 import 'features/admin/data/providers/admin_repository_provider.dart';
+import 'core/services/storage_provider.dart';
+import 'core/services/mock_storage_service.dart';
 import 'main.dart';
 
 /// Dev/E2E entry point with Marionette MCP integration.
@@ -46,6 +48,7 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        storageServiceProvider.overrideWithValue(MockStorageService()),
         // Enable demo mode (bypasses auth for admin access)
         isDemoModeProvider.overrideWithValue(true),
         // Connect to real backend API
