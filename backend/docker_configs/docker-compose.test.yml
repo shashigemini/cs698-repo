@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: spiritual_qa
     ports:
-      - "5432:5432"
+      - "5432"
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6379"
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -34,15 +34,15 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "6333"
+      - "6334"
     tmpfs:
       - /qdrant/storage
 
   test-runner:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.test
+      dockerfile: docker_configs/Dockerfile.test
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +57,6 @@ services:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - OPENAI_API_KEY=test-key
-    volumes:
-      - ../tests:/app/tests
-      - ../app:/app/app
+#    volumes:
+#      - ../tests:/app/tests
+#      - ../app:/app/app

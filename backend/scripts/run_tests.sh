@@ -11,10 +11,10 @@ echo "Running backend tests via Docker Compose..."
 cd "$(dirname "$0")/.."
 
 # Build and run the test runner, then remove the runner container
-docker compose -f docker/docker-compose.test.yml run --build --rm test-runner
+docker compose -f docker_configs/docker-compose.test.yml run --build --rm test-runner
 
 # Clean up all spawned services (postgres, redis, qdrant)
 echo "Cleaning up test environment..."
-docker compose -f docker/docker-compose.test.yml down -v
+docker compose -f docker_configs/docker-compose.test.yml down -v
 
 echo "Tests completed."

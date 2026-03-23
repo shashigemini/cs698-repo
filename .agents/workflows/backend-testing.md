@@ -33,6 +33,19 @@ Or for a specific class/method:
 docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/test_services_extra.py::TestAuthServiceAdditional::test_register_service -vv
 ```
 
+### 3. Run Tests Locally (Fast / Mocked)
+
+If you want to run tests quickly without spinning up Docker containers, you can run them directly on your host environment via Poetry. 
+This leverages the `sqlite+aiosqlite:///` fallback database and a fully mocked Redis instance defined in `conftest.py`. The tradeoff is that this does not test your true integration layer against real databases.
+
+```bash
+# Ensure dev dependencies are installed
+poetry install --with dev
+
+# Run pytest directly on the host
+poetry run pytest
+```
+
 > [!TIP]
 > **Non-Destructive Cleanup**: Avoid killing Docker processes or shell runners forcefully. Use `docker compose down` or Ctrl+C to allow processes to exit gracefully and maintain environment health.
 
