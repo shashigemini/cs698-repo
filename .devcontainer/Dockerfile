@@ -31,10 +31,9 @@ RUN mkdir -p ${PUB_CACHE} && chown -R vscode:vscode ${PUB_CACHE}
 
 # Pre-install poetry and uv to speed up container startup and improve reliability
 USER vscode
-RUN pipx install poetry && \
-    pipx install uv
+RUN pipx install poetry && pipx install uv
 # Global poetry config for in-project virtualenvs (matches devcontainer setting)
-RUN pipx run poetry config virtualenvs.in-project true
+RUN poetry config virtualenvs.in-project true
 
 # Install Marionette MCP tools
 RUN dart pub global activate marionette_mcp && \
@@ -45,5 +44,3 @@ RUN pipx install codegraphcontext && \
     pipx inject codegraphcontext kuzu && \
     pipx install vulture
 
-# Install global node tools
-RUN npm install -g pnpm

@@ -10,7 +10,8 @@
             "moby": "true"
         },
         "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts"
+            "version": "lts",
+            "pnpmVersion": "latest"
         }
     },
     "containerEnv": {
@@ -19,7 +20,6 @@
         "XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
         "PULSE_SERVER": "/mnt/wslg/PulseServer"
     },
-
     "customizations": {
         "vscode": {
             "settings": {
@@ -28,11 +28,12 @@
                 "python.testing.pytestArgs": [
                     "backend/tests"
                 ],
-                "python.locator": "js"
+                "python.locator": "js",
+                "python.languageServer": "None"
             },
             "extensions": [
                 "ms-python.python",
-                "ms-python.vscode-pylance",
+                "meta.pyrefly",
                 "charliermarsh.ruff",
                 "tamasfe.even-better-toml",
                 "ms-azuretools.vscode-docker",
@@ -42,7 +43,9 @@
             ]
         }
     },
-    "forwardPorts": [8000],
+    "forwardPorts": [
+        8000
+    ],
     "runArgs": [
         "--add-host=host.docker.internal:host-gateway"
     ],
