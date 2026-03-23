@@ -10,31 +10,32 @@ logger = get_logger(__name__)
 class TokenCleanupTask:
     """Manages the periodic cleanup of expired tokens."""
     
-    def __init__(self, interval_hours: int = 24):
+    def __init__(self, interval_hours: int = 24) -> None:
         self.interval_seconds = interval_hours * 3600
-        self._task = None
+        self._task: asyncio.Task[None] | None = None
         self._stop_event = asyncio.Event()
 
-    def start(self):
+    def start(self) -> None:
         """Starts the background cleanup task."""
         if self._task is None:
             self._stop_event.clear()
             self._task = asyncio.create_task(self._run_loop())
             logger.info("Token cleanup background task started (interval: %dh)", self.interval_seconds // 3600)
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stops the background cleanup task."""
-        if self._task:
+        task = self._task
+        if task:
             self._stop_event.set()
-            self._task.cancel()
+            task.cancel()
             try:
-                await self._task
+                await task
             except asyncio.CancelledError:
                 pass
             self._task = None
             logger.info("Token cleanup background task stopped")
 
-    async def _run_loop(self):
+    async def _run_loop(self) -> None:
         """Runs the cleanup periodically."""
         # Wait a bit before first run to let app start up fully
         try:
@@ -54,7 +55,7 @@ class TokenCleanupTask:
             except asyncio.TimeoutError:
                 pass # Continue loop
 
-    async def _cleanup(self):
+    async def _cleanup(self) -> None:
         """Perform the actual cleanup."""
         # Use local import to avoid circular dependency
         from app.dependencies import _database

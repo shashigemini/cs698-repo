@@ -27,7 +27,7 @@ async def ingest_document(
     logical_book_id: str = Form(...),
     author: str = Form(default=None),
     edition: str = Form(default=None),
-):
+) -> dict:
     """Upload and ingest a PDF document.
 
     The file is validated (magic bytes + extension), stored with
@@ -53,7 +53,7 @@ async def ingest_document(
 async def list_documents(
     admin: AdminUser,
     session: DbSession,
-):
+) -> list[dict]:
     """List all ingested documents and their status."""
     settings = get_settings()
     service = DocumentService(settings, session)
@@ -65,7 +65,7 @@ async def delete_document(
     document_id: str,
     admin: AdminUser,
     session: DbSession,
-):
+) -> MessageResponse:
     """Delete a document and its stored file."""
     settings = get_settings()
     service = DocumentService(settings, session)
@@ -81,7 +81,7 @@ async def delete_document(
 async def update_config(
     admin: AdminUser,
     update: ConfigUpdateRequest,
-):
+) -> MessageResponse:
     """Update global application configuration (demo mode only)."""
     settings = get_settings()
     
@@ -101,14 +101,14 @@ async def update_config(
 @router.get("/config")
 async def get_config(
     admin: AdminUser,
-):
+) -> dict:
     """Get current configuration (masked for security)."""
     settings = get_settings()
     
     def mask_key(key: str) -> str:
         if not key or len(key) < 8:
             return "Not set"
-        return f"{key[:4]}...{key[-3:]}"
+        return f"{key[:4]}...{key[-3:]}"  # type: ignore
         
     return {
         "openai_api_key": mask_key(settings.openai_api_key),

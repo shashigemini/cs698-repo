@@ -1,3 +1,8 @@
+---
+title: "Testing Strategy"
+sidebar_position: 7
+---
+
 # Testing Strategy
 
 We follow a strict quality assurance process combining fast unit tests with robust integration tests and AI-driven automation.

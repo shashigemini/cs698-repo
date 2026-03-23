@@ -1,3 +1,8 @@
+---
+title: "State Management"
+sidebar_position: 4
+---
+
 # State Management & Flows
 
 Our application uses **Riverpod** for state management, leveraging the **AsyncNotifier** pattern to handle asynchronous data and side effects with built-in loading and error states.

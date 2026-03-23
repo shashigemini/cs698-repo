@@ -1,3 +1,8 @@
+---
+title: "API Client & Integration"
+sidebar_position: 5
+---
+
 # API Client & Integration
 
 The frontend communicates with the FastAPI backend through a structured, interceptor-based layer using the **Dio** HTTP client.

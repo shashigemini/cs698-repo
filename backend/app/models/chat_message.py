@@ -3,8 +3,8 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,7 +33,7 @@ class ChatMessage(Base):
         Text, nullable=False
     )
     rag_metadata: Mapped[dict | None] = mapped_column(
-        JSONB, nullable=True
+        JSON, nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

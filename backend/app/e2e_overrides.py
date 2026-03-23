@@ -41,7 +41,7 @@ class StubLLMClient:
         history: list[dict],
     ) -> str:
         # A deterministic answer that references the retrieved context
-        titles = [p.get("title", "Unknown") for p in passages[:2]]
+        titles = [p.get("title", "Unknown") for p in passages[:2]]  # type: ignore
         context_str = ", ".join(titles) if titles else "no specific documents"
         
         return (
@@ -51,7 +51,7 @@ class StubLLMClient:
         )
 
 
-def apply_e2e_overrides(app: FastAPI) -> None:
+def apply_e2e_overrides(app_instance: FastAPI) -> None:
     """Monkey-patch RAG components to use stubs instead of real API clients.
     
     Since components are instantiated inside service constructors, we patch

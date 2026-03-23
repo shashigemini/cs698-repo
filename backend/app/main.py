@@ -5,6 +5,8 @@ routers, error handlers, and lifecycle management.
 """
 
 from contextlib import asynccontextmanager
+import typing
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,7 +30,7 @@ logger = get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     """Manage application startup and shutdown.
 
     Initializes database and Redis connections on startup,
@@ -138,7 +140,7 @@ def create_app() -> FastAPI:
         )
 
     # CORS — restricted to configured origins
-    cors_kwargs = {
+    cors_kwargs: dict[str, typing.Any] = {
         "allow_origins": settings.cors_origins,
         "allow_credentials": True,
         "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -173,7 +175,7 @@ def create_app() -> FastAPI:
     # --- CSRF Token Endpoint ---
     @app.get("/api/csrf")
     async def get_csrf_token(
-        authorization: str = None,
+        authorization: Optional[str] = None,
     ):
         """Get a CSRF token bound to the current session."""
         import hashlib
@@ -183,10 +185,10 @@ def create_app() -> FastAPI:
             from fastapi import HTTPException
             raise HTTPException(401, "Authentication required")
 
-        access_token = authorization[7:]
+        access_token = authorization[7:]  # type: ignore
         session_id = hashlib.sha256(
             access_token.encode()
-        ).hexdigest()[:32]
+        ).hexdigest()[:32]  # type: ignore
 
         token = generate_csrf_token(
             settings.csrf_secret, session_id

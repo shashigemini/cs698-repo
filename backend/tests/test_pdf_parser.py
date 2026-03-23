@@ -1,10 +1,10 @@
 """Tests for the PDF parser module."""
 
-import io
 from unittest.mock import MagicMock, patch
 
 import pytest
 import pypdf
+from pypdf.errors import PyPdfError
 
 from app.core.exceptions import ValidationError
 from app.rag.pdf_parser import parse_pdf
@@ -37,7 +37,7 @@ def test_parse_pdf_empty_document():
         assert result == []
 
 def test_parse_pdf_invalid_file():
-    with patch("app.rag.pdf_parser.pypdf.PdfReader", side_effect=pypdf.errors.PyPdfError("Bad PDF")):
+    with patch("app.rag.pdf_parser.pypdf.PdfReader", side_effect=PyPdfError("Bad PDF")):
         with pytest.raises(ValidationError) as exc:
             parse_pdf(b"bad_pdf_bytes")
         assert "Invalid or corrupted PDF file" in str(exc.value)

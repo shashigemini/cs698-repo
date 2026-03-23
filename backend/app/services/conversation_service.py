@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.logging import get_logger
+from app.models.chat_session import ChatSession
 from app.repositories.session_repo import MessageRepository, SessionRepository
 from app.schemas.chat_schemas import (
     ConversationSummary,
@@ -124,7 +125,7 @@ class ConversationService:
 
     async def _verify_ownership(
         self, user_id: str, conversation_id: str
-    ):
+    ) -> ChatSession:
         """Verify that a conversation belongs to the given user.
 
         Returns the ChatSession if valid.

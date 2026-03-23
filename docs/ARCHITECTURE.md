@@ -55,7 +55,7 @@ flowchart LR
 
     subgraph Backend["Backend (FastAPI, Python)"]
         subgraph AuthLayer["Auth & Security"]
-            AUTH_EPS["/Auth endpoints<br/>/auth/*"]
+            AUTH_EPS["/Auth endpoints<br/>/api/auth/*"]
             AU["AuthService<br/>(JWT/OAuth2 + password hashing + deletion)"]
         end
 
@@ -114,19 +114,21 @@ flowchart LR
 
 ### 2.3 Information Flows
 
-#### Authentication Flow
-1. **Registration/Login**: Flutter → `/auth/register` or `/auth/login`
-2. **Backend**: Validates credentials, hashes password, issues JWT tokens
-3. **Token Storage**:
+#### Authentication Flow (E2EE)
+1. **Login (Step 1)**: Flutter calls `/api/auth/login` to fetch the user's secure E2EE salt.
+2. **Key Derivation**: Flutter client locally derives keys using the password and salt.
+3. **Login Verify (Step 2)**: Flutter calls `/api/auth/login/verify` with the derived `client_auth_token`.
+4. **Backend**: Verifies the token, issues JWT access/refresh tokens.
+5. **Token Storage**:
    - **Web**: HttpOnly cookies (access + refresh) + CSRF token in header
    - **Mobile**: flutter_secure_storage
 
 #### Account Deletion Flow
-1. **Request**: Flutter -> `DELETE /auth/account`
+1. **Request**: Flutter -> `DELETE /api/auth/account`
 2. **Backend**: 
    - Verifies JWT
-   - Deletes user records from `users` (cascades to `chat_sessions`, `chat_messages`)
-   - Invalidates all active tokens
+   - Deletes user records from `users` (cascades to `chat_sessions`, `chat_messages`, `user_e2ee_keys`, `revoked_tokens`)
+   - **Invalidates**: all active tokens
 3. **Response**: 200 OK -> Client clears local storage and navigates to Login
 
 #### Guest Chat Flow
@@ -146,7 +148,7 @@ flowchart LR
 #### Conversation Management Flow
 1. **List**: `GET /api/chat/conversations` -> Returns metadata for history
 2. **Delete**: `DELETE /api/chat/conversations/{id}` -> Cascades to messages
-3. **Export**: `POST /api/chat/conversations/{id}` -> Returns markdown summary
+3. **Export**: `POST /api/chat/conversations/{id}/export` -> Returns markdown summary
 
 ---
 
@@ -161,11 +163,38 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'user',
+    is_e2ee BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_users_email ON users(email);
+```
+
+#### `user_e2ee_keys`
+```sql
+CREATE TABLE user_e2ee_keys (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    salt BYTEA NOT NULL,
+    wrapped_account_key TEXT NOT NULL,
+    recovery_wrapped_ak TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `revoked_tokens`
+```sql
+CREATE TABLE revoked_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_jti VARCHAR(255) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    revoked_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_revoked_tokens_jti ON revoked_tokens(token_jti);
+CREATE INDEX idx_revoked_tokens_expires_at ON revoked_tokens(expires_at);
 ```
 
 #### `chat_sessions` (Authenticated Users Only)
@@ -174,6 +203,7 @@ CREATE TABLE chat_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(500),
+    wrapped_conversation_key TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -192,8 +222,7 @@ CREATE TABLE chat_messages (
     sender VARCHAR(20) NOT NULL CHECK (sender IN ('user', 'assistant')),
     content TEXT NOT NULL,
     rag_metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_chat_messages_session_id ON chat_messages(session_id);
@@ -223,12 +252,13 @@ CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at);
 ```sql
 CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    logical_book_id VARCHAR(100) NOT NULL,
+    logical_book_id VARCHAR(255) NOT NULL,
     title VARCHAR(500) NOT NULL,
     author VARCHAR(255),
-    edition VARCHAR(100),
+    edition VARCHAR(255),
     file_path VARCHAR(1000) NOT NULL,
     total_pages INT,
+    chunks_created INT NOT NULL DEFAULT 0,
     embedding_model VARCHAR(100) DEFAULT 'text-embedding-ada-002',
     ingestion_status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -269,6 +299,8 @@ CREATE INDEX idx_documents_ingestion_status ON documents(ingestion_status);
 ```mermaid
 erDiagram
     users ||--o{ chat_sessions : "has"
+    users ||--o{ revoked_tokens : "has"
+    users ||--|| user_e2ee_keys : "possesses"
     chat_sessions ||--o{ chat_messages : "contains"
     documents ||--o{ chat_messages : "cited_in"
     
@@ -277,6 +309,7 @@ erDiagram
         string email UK
         string password_hash
         string role
+        boolean is_e2ee
         timestamp created_at
         timestamp updated_at
     }
@@ -285,6 +318,7 @@ erDiagram
         uuid id PK
         uuid user_id FK
         string title
+        text wrapped_conversation_key
         timestamp created_at
         timestamp updated_at
     }
@@ -296,7 +330,6 @@ erDiagram
         text content
         jsonb rag_metadata
         timestamp created_at
-        timestamp updated_at
     }
     
     documents {
@@ -307,6 +340,7 @@ erDiagram
         string edition
         string file_path
         int total_pages
+        int chunks_created
         string embedding_model
         string ingestion_status
         timestamp created_at
@@ -497,12 +531,12 @@ All API errors return:
 | `INVALID_CREDENTIALS` | 401 | Wrong email/password (Auth) | `null` |
 | `RATE_LIMIT_EXCEEDED` | 429 | Guest query limit reached | `{"retry_after": 3600, "remaining": 0, "limit": 10}` |
 | `VALIDATION_ERROR` | 400 | Invalid input format | `{"field": "query", "issue": "too_long"}` |
-| `QUERY_TOO_SHORT` | 400 | Query < 1 character (RAG) | `{"min_length": 1}` |
-| `QUERY_TOO_LONG` | 400 | Query > 2000 characters (RAG) | `{"max_length": 2000, "provided": 2500}` |
 | `INTERNAL_ERROR` | 500 | Server error | `null` |
 | `EMAIL_ALREADY_EXISTS` | 400 | Registration conflict (Auth) | `null` |
 | `INVALID_REFRESH_TOKEN` | 401 | Expired/invalid refresh token (Auth) | `null` |
 | `CONVERSATION_NOT_FOUND` | 404 | Invalid conversation_id (RAG) | `{"conversation_id": "..."}` |
+| `ACCOUNT_NOT_FOUND` | 404 | Missing account during recovery | `null` |
+| `KEYS_NOT_FOUND` | 400 | Missing E2EE keys | `null` |
 | `FORBIDDEN` | 403 | Insufficient permissions | `{"required_role": "admin"}` |
 | `LLM_ERROR` | 503 | OpenAI API failure (RAG) | `{"retry": true, "error": "timeout"}` |
 | `RETRIEVAL_ERROR` | 503 | Qdrant query failure (RAG) | `{"retry": true}` |
@@ -639,10 +673,15 @@ Answer:
 - JWT access + refresh tokens
 
 **Endpoints**:
-- `POST /auth/register`
-- `POST /auth/login`
-- `POST /auth/refresh`
-- `POST /auth/logout`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/login/verify`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `POST /api/auth/change-password`
+- `POST /api/auth/recover`
+- `DELETE /api/auth/account`
+- `GET /api/csrf`
 
 **Token Handling**:
 - **Web**: HttpOnly cookies + CSRF protection
@@ -682,13 +721,16 @@ Answer:
 
 ### 7.1 Authentication APIs
 
-#### POST `/auth/register`
+#### POST `/api/auth/register`
 
 **Request**:
 ```json
 {
   "email": "user@example.com",
-  "password": "SecurePass123!"
+  "client_auth_token": "base64_encoded_token...",
+  "salt": "base64_encoded_salt...",
+  "wrapped_account_key": "base64_encoded_key...",
+  "recovery_wrapped_ak": "base64_encoded_key..."
 }
 ```
 
@@ -698,7 +740,7 @@ Answer:
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "access_token": "eyJhbGc...",
   "refresh_token": "eyJhbGc...",
-  "expires_in": 900
+  "access_expires_at": "2026-03-22T03:00:00Z"
 }
 ```
 - **Web**: Tokens set as HttpOnly cookies; minimal JSON returned
@@ -715,17 +757,22 @@ Answer:
 
 ---
 
-#### POST `/auth/login`
+#### POST `/api/auth/login`
 
 **Request**:
 ```json
 {
-  "email": "user@example.com",
-  "password": "SecurePass123!"
+  "email": "user@example.com"
 }
 ```
 
-**Success Response** (200): Same as `/auth/register`
+**Success Response** (200):
+```json
+{
+  "salt": "base64_encoded_salt...",
+  "recovery_wrapped_ak": "base64_encoded_key..."
+}
+```
 
 **Error Response** (401):
 ```json
@@ -738,7 +785,30 @@ Answer:
 
 ---
 
-#### POST `/auth/refresh`
+#### POST `/api/auth/login/verify`
+
+**Request**:
+```json
+{
+  "email": "user@example.com",
+  "client_auth_token": "base64_encoded_token..."
+}
+```
+
+**Success Response** (200):
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "access_token": "eyJhbGc...",
+  "refresh_token": "eyJhbGc...",
+  "access_expires_at": "2026-03-22T03:00:00Z",
+  "wrapped_account_key": "base64_encoded_key..."
+}
+```
+
+---
+
+#### POST `/api/auth/refresh`
 
 **Request** (Mobile):
 ```json
@@ -754,7 +824,7 @@ Answer:
 {
   "access_token": "eyJhbGc...",
   "refresh_token": "eyJhbGc...",
-  "expires_in": 900
+  "access_expires_at": "2026-03-22T03:00:00Z"
 }
 ```
 
@@ -769,7 +839,7 @@ Answer:
 
 ---
 
-#### POST `/auth/logout`
+#### POST `/api/auth/logout`
 
 **Headers**:
 ```
@@ -824,14 +894,16 @@ Authorization: Bearer <access_token>
       "title": "The Path of Light: Volume 1",
       "page": 42,
       "paragraph_id": "p3",
-      "relevance_score": 0.89
+      "relevance_score": 0.89,
+      "passage_text": "Karma refers to the law of cause and effect..."
     },
     {
       "document_id": "770e8400-e29b-41d4-a716-446655440000",
       "title": "The Path of Light: Volume 1",
       "page": 43,
       "paragraph_id": "p1",
-      "relevance_score": 0.85
+      "relevance_score": 0.85,
+      "passage_text": "Every action has a reaction in the spiritual realm..."
     }
   ],
   "conversation_id": "660e8400-e29b-41d4-a716-446655440000",
@@ -839,7 +911,8 @@ Authorization: Bearer <access_token>
     "retrieval_time_ms": 123,
     "llm_time_ms": 456,
     "total_chunks_retrieved": 5
-  }
+  },
+  "guest_queries_remaining": 9
 }
 ```
 

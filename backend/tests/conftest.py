@@ -24,16 +24,6 @@ import app.models  # noqa: F401 - ensure models are registered
 from app.core.database import Base
 
 
-# --- Event Loop ---
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Use a single event loop for the entire test session."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 # --- Test Settings ---
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 """Token service — JWT generation, validation, and revocation."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -124,7 +124,7 @@ class TokenService:
 
         user_id = payload["sub"]
         old_jti = payload.get("jti", "")
-        old_exp = datetime.utcfromtimestamp(payload["exp"])
+        old_exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
 
         # Revoke old refresh token
         await self.revoke_refresh_token(

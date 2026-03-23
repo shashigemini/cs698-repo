@@ -24,8 +24,8 @@ class TestChunker:
         assert payload["author"] == "Author"
 
     def test_chunk_text_basic(self):
-        pages = [{"page": 1, "text": "Sentence one. Sentence two.\n\nParagraph two."}]
-        chunks = chunk_text(pages, target_tokens=10, overlap_tokens=0)
+        pages = [{"page": 1, "text": "Sentence one is here. Sentence two is also here.\n\nParagraph two has more words and content to fill up the chunk."}]
+        chunks = chunk_text(pages, target_tokens=5, overlap_tokens=0)
         assert len(chunks) >= 2
         assert chunks[0].page == 1
         assert "Sentence" in chunks[0].text
@@ -133,7 +133,10 @@ class TestRetriever:
             mock_hit = MagicMock()
             mock_hit.payload = {"text": "found", "title": "Doc"}
             mock_hit.score = 0.95
-            mock_client.search = AsyncMock(return_value=[mock_hit])
+            
+            mock_response = MagicMock()
+            mock_response.points = [mock_hit]
+            mock_client.query_points = AsyncMock(return_value=mock_response)
             
             retriever = Retriever(test_settings)
             res = await retriever.search(query_vector=[0.1]*1536)

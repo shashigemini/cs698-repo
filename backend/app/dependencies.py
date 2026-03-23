@@ -4,7 +4,7 @@ Provides database sessions, authenticated user extraction,
 and service instances to route handlers via Depends().
 """
 
-from typing import Annotated, Optional
+from typing import Annotated, AsyncGenerator, Optional
 
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +34,7 @@ def set_redis(redis: RedisClient) -> None:
     _redis = redis
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Yield a database session for a single request."""
     if _database is None:
         raise RuntimeError("Database not initialized")
@@ -84,16 +84,13 @@ async def get_current_user(
     In debug mode, if no token is provided, a dummy demo user is returned.
     """
     if settings.debug:
-        if not authorization or not authorization.startswith("Bearer "):
-             return {"sub": "00000000-0000-0000-0000-000000000000", "role": "admin"}
-        # Frontend demo code will send a mock token. Bypass JWT parsing and assign a generic valid UUID.
         if authorization == "Bearer mock-access-token":
              return {"sub": "11111111-1111-1111-1111-111111111111", "role": "admin"}
-
-    if not authorization or not authorization.startswith("Bearer "):
+             
+    if authorization is None or not authorization.startswith("Bearer "):
         raise TokenError("Missing or invalid Authorization header")
 
-    token = authorization[7:]  # Strip "Bearer "
+    token = str(authorization).removeprefix("Bearer ")
     return token_service.validate_access_token(token)
 
 
@@ -109,10 +106,10 @@ async def get_optional_user(
     """
     if settings.debug and authorization == "Bearer mock-access-token":
         return {"sub": "11111111-1111-1111-1111-111111111111", "role": "admin"}
-    if not authorization or not authorization.startswith("Bearer "):
+    if authorization is None or not authorization.startswith("Bearer "):
         return None
 
-    token = authorization[7:]
+    token = str(authorization).removeprefix("Bearer ")
     try:
         return token_service.validate_access_token(token)
     except TokenError:
@@ -127,7 +124,7 @@ async def require_admin(
 
     In development/debug mode, any authenticated user is treated as an admin.
     """
-    if settings.debug:
+    if settings.debug and user.get("sub") == "11111111-1111-1111-1111-111111111111":
         return user
         
     if user.get("role") != "admin":

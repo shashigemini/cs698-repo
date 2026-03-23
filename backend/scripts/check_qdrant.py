@@ -30,11 +30,14 @@ async def check():
         print("\n=== SAMPLE POINTS ===")
         for i, point in enumerate(points):
             print(f"\n--- Point {i+1} ---")
-            for k, v in point.payload.items():
-                if k == "text":
-                    print(f"  {k}: {v[:100]}... (length: {len(v)})")
-                else:
-                    print(f"  {k}: {v}")
+            if point.payload:
+                for k, v in point.payload.items():
+                    if k == "text":
+                        print(f"  {k}: {v[:100]}... (length: {len(v)})")
+                    else:
+                        print(f"  {k}: {v}")
+            else:
+                print("  (no payload)")
 
 if __name__ == "__main__":
     asyncio.run(check())

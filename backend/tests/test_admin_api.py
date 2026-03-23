@@ -68,11 +68,13 @@ async def admin_client(test_settings):
 
     mock_redis = MockRedis()
     
-    class MockRedisClient:
+    class MockRedisClient(RedisClient):
         def __init__(self, client):
             self.client = client
         async def check_health(self):
             return True
+        async def close(self):
+            pass
             
     mock_redis_client = MockRedisClient(mock_redis)
 
@@ -205,3 +207,65 @@ class TestAdminDocuments:
         )
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
+
+
+class TestAdminConfig:
+    """Tests for admin config endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_get_config_with_admin(
+        self, admin_client, test_settings
+    ):
+        """GET /api/admin/config with admin token → 200."""
+        admin_token = _register_and_login_admin(test_settings)
+        resp = await admin_client.get(
+            "/api/admin/config",
+            headers={
+                "Authorization": f"Bearer {admin_token}"
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "openai_model" in data
+        assert "openai_api_key" in data
+
+    @pytest.mark.asyncio
+    async def test_update_config_with_admin(
+        self, admin_client, test_settings
+    ):
+        """PUT /api/admin/config with admin token → 200."""
+        admin_token = _register_and_login_admin(test_settings)
+        resp = await admin_client.put(
+            "/api/admin/config",
+            headers={
+                "Authorization": f"Bearer {admin_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "openai_model": "gpt-4o-mini",
+                "openai_temperature": 0.5,
+            },
+        )
+        assert resp.status_code == 200
+        assert "updated" in resp.json()["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_get_config_no_auth(self, admin_client):
+        """GET /api/admin/config without auth → 401."""
+        resp = await admin_client.get("/api/admin/config")
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_update_config_user_role(
+        self, admin_client, test_settings
+    ):
+        """PUT /api/admin/config with user token → 403."""
+        user_token = _make_user_token(test_settings)
+        resp = await admin_client.put(
+            "/api/admin/config",
+            headers={
+                "Authorization": f"Bearer {user_token}",
+            },
+            json={"openai_model": "gpt-3.5"},
+        )
+        assert resp.status_code == 403

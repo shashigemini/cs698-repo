@@ -16,7 +16,7 @@ router = APIRouter(tags=["Health"])
 
 
 @router.get("/health")
-async def health_check():
+async def health_check() -> dict:
     """Return application health and dependency status.
 
     Note: Database and Redis checks are injected at the main

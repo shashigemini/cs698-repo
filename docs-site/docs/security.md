@@ -1,3 +1,8 @@
+---
+title: "Security & Authentication"
+sidebar_position: 6
+---
+
 # Security
 
 This page documents the security architecture, implemented hardening measures, and the future security roadmap for the Spiritual Q&A Platform.

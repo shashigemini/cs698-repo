@@ -70,11 +70,13 @@ async def app_client(test_settings):
 
     mock_redis = MockRedis()
     
-    class MockRedisClient:
+    class MockRedisClient(RedisClient):
         def __init__(self, client):
             self.client = client
         async def check_health(self):
             return True
+        async def close(self):
+            pass
             
     mock_redis_client = MockRedisClient(mock_redis)
     

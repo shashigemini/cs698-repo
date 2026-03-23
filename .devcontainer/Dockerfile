@@ -13,8 +13,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     libblkid-dev libsecret-1-dev libjsoncpp-dev \
     # Virtual framebuffer for headless GUI testing
     xvfb \
-    # SSH Client for host terminal access
-    openssh-client \
+    # SSH Client / Networking for host terminal access
+    openssh-client socat \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install Flutter SDK
@@ -39,3 +39,11 @@ RUN pipx run poetry config virtualenvs.in-project true
 # Install Marionette MCP tools
 RUN dart pub global activate marionette_mcp && \
     dart pub global activate marionette_cli
+
+# Install MCP tools and additional python CLI utilities
+RUN pipx install codegraphcontext && \
+    pipx inject codegraphcontext kuzu && \
+    pipx install vulture
+
+# Install global node tools
+RUN npm install -g pnpm

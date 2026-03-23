@@ -68,3 +68,4 @@ e2e_*.json
 data/pdfs/
 .gemini/
 test_data/
+backend/data/pdfs/

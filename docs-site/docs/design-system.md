@@ -1,3 +1,8 @@
+---
+title: "Design System"
+sidebar_position: 8
+---
+
 # Design System & Styling
 
 Our application prioritizes a premium, "wow" aesthetic using modern web and mobile design patterns.

@@ -35,7 +35,7 @@ async def register(
     rate_limiter: RateLimitSvc,
     client_ip: ClientIP,
     use_cookies: bool = Query(False, description="Return tokens in HttpOnly cookies"),
-):
+) -> AuthResponse:
     """Register a new user with E2EE key material."""
     headers = await rate_limiter.check_register(ip=client_ip)
     for k, v in headers.items():
@@ -68,7 +68,7 @@ async def login_challenge(
     auth_service: AuthSvc,
     rate_limiter: RateLimitSvc,
     client_ip: ClientIP,
-):
+) -> LoginChallengeResponse:
     """Step 1: Get user's salt for client-side key derivation."""
     headers = await rate_limiter.check_login(ip=client_ip, email=body.email)
     for k, v in headers.items():
@@ -87,7 +87,7 @@ async def login_verify(
     rate_limiter: RateLimitSvc,
     client_ip: ClientIP,
     use_cookies: bool = Query(False, description="Return tokens in HttpOnly cookies"),
-):
+) -> LoginVerifyResponse:
     """Step 2: Verify client auth token and return JWT pair + wrapped AK."""
     headers = await rate_limiter.check_login(ip=client_ip, email=body.email)
     for k, v in headers.items():
@@ -119,7 +119,7 @@ async def refresh_tokens(
     body: Optional[RefreshRequest] = None,
     refresh_token_cookie: Optional[str] = Cookie(None, alias="refresh_token"),
     use_cookies: bool = Query(False, description="Return tokens in HttpOnly cookies"),
-):
+) -> RefreshResponse:
     """Rotate refresh token and issue new JWT pair."""
     token = body.refresh_token if body else refresh_token_cookie
     if not token:
@@ -145,7 +145,7 @@ async def logout(
     user: CurrentUser,
     auth_service: AuthSvc,
     response: Response,
-):
+) -> MessageResponse:
     """Revoke the current refresh token."""
     await auth_service.logout(
         user_id=user["sub"],
@@ -161,7 +161,7 @@ async def logout(
 async def delete_account(
     user: CurrentUser,
     auth_service: AuthSvc,
-):
+) -> MessageResponse:
     """Permanently delete user account and all data."""
     await auth_service.delete_account(user_id=user["sub"])
     return MessageResponse(message="Account and data deleted successfully")
@@ -172,7 +172,7 @@ async def change_password(
     body: ChangePasswordRequest,
     user: CurrentUser,
     auth_service: AuthSvc,
-):
+) -> MessageResponse:
     """Update auth credentials after client-side password change."""
     await auth_service.change_password(
         user_id=user["sub"],
@@ -186,7 +186,7 @@ async def change_password(
 async def recover_account(
     body: RecoverAccountRequest,
     auth_service: AuthSvc,
-):
+) -> RecoverAccountResponse:
     """Recover account with new credentials (after mnemonic verification)."""
     result = await auth_service.recover_account(
         email=body.email,

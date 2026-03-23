@@ -38,7 +38,7 @@ async def chat_query(
     user: OptionalUser,
     rate_limiter: RateLimitSvc,
     client_ip: ClientIP,
-):
+) -> QueryResponse:
     """Send a query to the RAG pipeline.
 
     Supports both guest (rate-limited, no persistence) and
@@ -77,7 +77,7 @@ async def list_conversations(
     request: Request,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-):
+) -> list[ConversationSummary]:
     """List all conversations for the authenticated user."""
     auth_header = request.headers.get("Authorization")
     print(f"DEBUG AUTH: Authorization='{auth_header}' user_sub='{user.get('sub')}'", flush=True)
@@ -93,7 +93,7 @@ async def load_conversation(
     conversation_id: str,
     user: CurrentUser,
     session: DbSession,
-):
+) -> list[MessageResponse]:
     """Load all messages in a conversation."""
     service = ConversationService(session)
     return await service.load_history(user["sub"], conversation_id)
@@ -107,7 +107,7 @@ async def delete_conversation(
     conversation_id: str,
     user: CurrentUser,
     session: DbSession,
-):
+) -> MsgResponse:
     """Delete a conversation and all its messages."""
     service = ConversationService(session)
     await service.delete_conversation(user["sub"], conversation_id)
@@ -122,7 +122,7 @@ async def export_conversation(
     conversation_id: str,
     user: CurrentUser,
     session: DbSession,
-):
+) -> ExportResponse:
     """Export a conversation as formatted Markdown."""
     service = ConversationService(session)
     return await service.export_conversation(

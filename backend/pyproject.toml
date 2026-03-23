@@ -59,6 +59,12 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
+[tool.coverage.run]
+omit = [
+    "app/api/test_router.py",
+    "app/e2e_overrides.py",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -67,3 +73,10 @@ addopts = "--cov=app --cov-report=term-missing --cov-fail-under=85"
 markers = [
     "integration: marks tests requiring Docker services",
 ]
+
+[tool.pyrefly]
+project-includes = ["app", "tests", "scripts"]
+search-path = ["/workspaces/cs698-repo/backend"]
+site-package-path = ["/workspaces/cs698-repo/backend/.venv/lib/python3.11/site-packages"]
+python-interpreter-path = "/workspaces/cs698-repo/backend/.venv/bin/python3"
+python-version = "3.11"

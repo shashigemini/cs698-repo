@@ -1,0 +1,24 @@
+{
+  "name": "cs698-repo",
+  "version": "1.0.0",
+  "description": "**Course**: CS 698 - Software Engineering\r **Organization**: Non-Profit Spiritual Organization\r **Last Updated**: February 15, 2026",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shashigemini/cs698-repo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shashigemini/cs698-repo/issues"
+  },
+  "homepage": "https://github.com/shashigemini/cs698-repo#readme"
+}

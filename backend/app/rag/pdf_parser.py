@@ -1,9 +1,11 @@
 """PDF parsing module for text extraction."""
 
 import io
-from typing import Optional
+import re
+from typing import List
 
 import pypdf
+from pypdf.errors import PyPdfError
 
 from app.core.exceptions import ValidationError
 from app.core.logging import get_logger
@@ -43,7 +45,7 @@ def parse_pdf(file_content: bytes) -> list[dict]:
             
         return pages_data
 
-    except pypdf.errors.PyPdfError as e:
+    except PyPdfError as e:
         logger.error("Failed to parse PDF: %s", e)
         raise ValidationError("Invalid or corrupted PDF file") from e
     except Exception as e:

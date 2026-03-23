@@ -27,7 +27,8 @@
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
                     "backend/tests"
-                ]
+                ],
+                "python.locator": "js"
             },
             "extensions": [
                 "ms-python.python",
@@ -36,7 +37,8 @@
                 "tamasfe.even-better-toml",
                 "ms-azuretools.vscode-docker",
                 "dart-code.dart-code",
-                "dart-code.flutter"
+                "dart-code.flutter",
+                "github.vscode-github-actions"
             ]
         }
     },

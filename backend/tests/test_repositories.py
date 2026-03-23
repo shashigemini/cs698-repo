@@ -74,6 +74,7 @@ class TestSessionRepository:
         s = await repo.create(user_id=user.id, title="Old")
         await repo.update_title(s.id, "New Title")
         updated = await repo.get_by_id(s.id)
+        assert updated is not None
         assert updated.title == "New Title"
 
     @pytest.mark.asyncio
@@ -207,6 +208,7 @@ class TestDocumentRepository:
             total_pages=10,
         )
         updated = await repo.get_by_id(doc.id)
+        assert updated is not None
         assert updated.ingestion_status == "completed"
         assert updated.chunks_created == 42
         assert updated.total_pages == 10

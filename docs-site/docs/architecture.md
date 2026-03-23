@@ -1,4 +1,9 @@
-# System Architecture
+---
+title: "System Architecture"
+sidebar_position: 2
+---
+
+# End-to-End Architecture
 
 This document provides a high-level overview of the Spiritual Q&A Platform's architecture, including its components, data flow, and technology stack.
 
@@ -15,14 +20,14 @@ flowchart LR
 
     subgraph Backend["Backend (FastAPI, Python)"]
         subgraph AuthLayer["Auth & Security"]
-            AUTH_EPS["/Auth endpoints<br/>/auth/*"]
+            AUTH_EPS["/Auth endpoints<br/>/api/auth/*"]
             AU["AuthService<br/>(JWT/OAuth2 + password hashing + deletion)"]
         end
 
         subgraph ChatLayer["Chat & RAG"]
             CHAT_EP["/POST /api/chat/query/"]
             RL["RateLimiter<br/>(IP + guest_session_id)"]
-            RAG["RAGService<br/>(LlamaIndex + OpenAI GPT-4o-mini)"]
+            RAG["RAGService<br/>(LlamaIndex + OpenAI gpt-4.1-mini)"]
         end
     end
 
@@ -33,7 +38,7 @@ flowchart LR
     end
 
     subgraph LLM["LLM Provider"]
-        O["OpenAI GPT-4o-mini API"]
+        O["OpenAI gpt-4.1-mini API"]
     end
 
     S --> LS
@@ -69,7 +74,7 @@ flowchart LR
 | **PostgreSQL** | Relational DB | User data, session persistence, document metadata |
 | **Qdrant** | Vector DB | Semantic search and document chunk storage |
 | **LlamaIndex** | RAG Framework | Orchestrating retrieval and LLM response |
-| **OpenAI API** | GPT-4o-mini | Natural language generation |
+| **OpenAI API** | gpt-4.1-mini | Natural language generation |
 
 ## Frontend Layered Architecture
 
@@ -94,4 +99,3 @@ The application follows a feature-based, layered architecture designed for testa
 
 - **Production (`lib/main.dart`)**: Initializes core services and starts the app.
 - **Development (`lib/main_dev.dart`)**: Includes mock overrides and **Marionette** integration for automated testing.
-
