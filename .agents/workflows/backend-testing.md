@@ -39,11 +39,8 @@ If you want to run tests quickly without spinning up Docker containers, you can 
 This leverages the `sqlite+aiosqlite:///` fallback database and a fully mocked Redis instance defined in `conftest.py`. The tradeoff is that this does not test your true integration layer against real databases.
 
 ```bash
-# Ensure dev dependencies are installed
-poetry install --with dev
-
-# Run pytest directly on the host
-poetry run pytest
+# Helper script to automatically install missing dependencies and run pytest
+bash ./scripts/run_local_tests.sh
 ```
 
 > [!TIP]
