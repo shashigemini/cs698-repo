@@ -29,60 +29,55 @@ This backend interacts with three distinct data stores:
 
 ## Operations Guide
 
-### 1. Installation
+This project is optimized for containerized development, ensuring a consistent environment with all required databases natively integrated.
 
-Ensure you have Python 3.11+ installed. We use `poetry` for dependency management. Access the `.env.example` file and copy it to `.env`, filling in your `OPENAI_API_KEY` and setting a secure `SECRET_KEY`.
+### 1. Devcontainer Setup (Recommended)
+This repository includes a full `.devcontainer` configuration. Opening this project in VS Code (or Cursor) with the Devcontainer extension will automatically build the environment, install all Python dependencies via Poetry, and set up your workspace without affecting your host machine.
 
+### 2. Local Development (Docker Compose)
+We use a dedicated development compose file (`dev_test/docker-compose.dev.yml`) to spin up the entire backend along with its databases (Postgres, Redis, Qdrant). This file also runs the FastAPI server with hot-reloading enabled.
+
+1. **Create your environment variables:**
+   ```bash
+   cp .env.example .env
+   ```
+   *Make sure to fill in your `OPENAI_API_KEY` and set a secure `SECRET_KEY`.*
+
+2. **Start the development environment:**
+   ```bash
+   docker compose -f backend/dev_test/docker-compose.dev.yml up -d --build
+   ```
+   *This starts the databases, runs Alembic migrations automatically, and starts the FastAPI server on `http://localhost:8000` with auto-reload enabled. Swagger docs are available at `http://localhost:8000/docs`.*
+
+3. **View application logs:**
+   ```bash
+   docker compose -f backend/dev_test/docker-compose.dev.yml logs -f app
+   ```
+
+### 3. Testing
+We support two testing workflows. For comprehensive details, see the backend testing workflow guide.
+
+- **Containerized Integration Tests (Recommended):** Tests against real, ephemeral Postgres, Redis, and Qdrant containers.
+  ```bash
+  # Linux/macOS
+  ./backend/scripts/run_tests.sh
+  
+  # Windows
+  .\backend\scripts\run_tests.bat
+  ```
+- **Local SQLite/Mocked Tests (Fast):** Tests using a local SQLite database and mocked Redis. Perfect for fast iterations.
+  ```bash
+  bash ./backend/scripts/run_local_tests.sh
+  ```
+
+### 4. Teardown
+To cleanly stop the development containers without destroying your database data:
 ```bash
-cd backend
-poetry install
+docker compose -f backend/dev_test/docker-compose.dev.yml stop
 ```
 
-### 2. Starting Databases
-
-The required databases (PostgreSQL, Qdrant, Redis) are containerized. You must start them before running migrations or the backend application.
-
+### 5. Resetting Data (Hard Teardown)
+If you need to completely wipe all data (users, vector embeddings, chat history) and start fresh:
 ```bash
-cd backend
-docker-compose up -d
+docker compose -f backend/dev_test/docker-compose.dev.yml down -v
 ```
-*Wait ~5 seconds for PostgreSQL to accept connections.*
-
-### 3. Running Migrations
-
-Database schemas are managed by Alembic. Run the migrations to set up the PostgreSQL tables. Qdrant collections are initialized automatically by the app payload, but Postgres requires this step.
-
-```bash
-cd backend
-poetry run alembic upgrade head
-```
-
-### 4. Application Startup
-
-Start the FastAPI unified backend server. It will run on `http://localhost:8000` by default.
-
-```bash
-cd backend
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-*You can access the auto-generated Swagger documentation at `http://localhost:8000/docs`.*
-
-### 5. Application Teardown
-
-To cleanly stop the application:
-1. Hit `CTRL+C` in the terminal running the `uvicorn` server to allow background cleanup tasks to finish gracefully.
-2. Stop the data containers without destroying the data:
-```bash
-cd backend
-docker-compose stop
-```
-
-### 6. Resetting Data (Hard Teardown)
-
-If you need to completely wipe all users, chat history, and vector embeddings (useful during active development):
-
-```bash
-cd backend
-docker-compose down -v
-```
-This command destroys the containers and their attached volumes. You will need to run the Alembic migrations again (`alembic upgrade head`) before starting the app.

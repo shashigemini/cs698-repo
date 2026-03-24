@@ -28,7 +28,7 @@ flowchart TD
         RAGSvc["RAGService\n(Protected Routes)"]
         
         API_GW --> CSRF
-        CSRF --> |"/auth/register", "/auth/login", "/auth/login/verify"| RL
+        CSRF --> |"/auth/register, /auth/login, /auth/login/verify"| RL
         RL --> AuthSvc
         
         %% Demonstrating the unified nature
