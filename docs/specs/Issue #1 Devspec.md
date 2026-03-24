@@ -7,12 +7,11 @@ As a spiritual seeker (guest or authenticated), I want to receive answers based 
 
 ```mermaid
 flowchart TD
-    Client[Flutter App (Web/iOS/Android)] -->|query, guest_session_id,
-JWT, CSRF| Backend[FastAPI App]
-    Backend -->|verify JWT/rate limit| Redis[(Redis)]
-    Backend -->|read/write sessions| Postgres[(PostgreSQL)]
-    Backend -->|retrieve chunks| Qdrant[(Qdrant Vector DB)]
-    Backend -->|prompt + chunks| LLM((OpenAI gpt-4.1-mini))
+    Client["Flutter App (Web/iOS/Android)"] -->|"query, guest_session_id, JWT, CSRF"| Backend["FastAPI App"]
+    Backend -->|"verify JWT/rate limit"| Redis[("Redis")]
+    Backend -->|"read/write sessions"| Postgres[("PostgreSQL")]
+    Backend -->|"retrieve chunks"| Qdrant[("Qdrant Vector DB")]
+    Backend -->|"prompt + chunks"| LLM(("OpenAI gpt-4.1-mini"))
 ```
 
 
@@ -114,12 +113,12 @@ Session Title Generation: Auto-generated from first 50 characters of first user 
 
 ```mermaid
 flowchart TD
-    Start([Receive PDF]) --> Extract[Extract Paragraphs]
-    Extract --> Chunk[Chunk Text (500 tokens, 50 overlap)]
-    Chunk --> Meta[Add Metadata (page, paragraph_id)]
-    Meta --> Embed[Generate Embeddings]
-    Embed --> Qdrant[(Store in Qdrant)]
-    Embed --> PG[(Store Document Meta in Postgres)]
+    Start(["Receive PDF"]) --> Extract["Extract Paragraphs"]
+    Extract --> Chunk["Chunk Text (500 tokens, 50 overlap)"]
+    Chunk --> Meta["Add Metadata (page, paragraph_id)"]
+    Meta --> Embed["Generate Embeddings"]
+    Embed --> Qdrant[("Store in Qdrant")]
+    Embed --> PG[("Store Document Meta in Postgres")]
 ```
 
 

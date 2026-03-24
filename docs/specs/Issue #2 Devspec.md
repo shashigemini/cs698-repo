@@ -7,10 +7,10 @@ As a new visitor, I want to create a secure account so that my access to the pro
 
 ```mermaid
 flowchart TD
-    Client[Flutter Web/Mobile] -->|POST /auth/register| Backend[FastAPI]
-    Backend -->|Check Email/Rate Limit| DB[(PostgreSQL)]
-    Backend -->|Hash Password (Argon2)| DB
-    Backend -->|Return Tokens| Client
+    Client["Flutter Web/Mobile"] -->|"POST /auth/register"| Backend["FastAPI"]
+    Backend -->|"Check Email/Rate Limit"| DB[("PostgreSQL")]
+    Backend -->|"Hash Password (Argon2)"| DB
+    Backend -->|"Return Tokens"| Client
 ```
 
 
@@ -159,16 +159,16 @@ State Diagrams
 
 ```mermaid
 flowchart TD
-    Start([User submits email/pass]) --> RL{Rate Limited?}
-    RL -- Yes --> Err1[429 Rate Limit Exceeded]
-    RL -- No --> Val{Valid Input?}
-    Val -- No --> Err2[400 Validation Error]
-    Val -- Yes --> Check{Email Exists?}
-    Check -- Yes --> Err3[400 Email Already Exists]
-    Check -- No --> Hash[Hash Password (Argon2)]
-    Hash --> Save[(Save to DB)]
-    Save --> GenTokens[Generate JWT Tokens]
-    GenTokens --> Return[Return 200 OK + Tokens]
+    Start(["User submits email/pass"]) --> RL{"Rate Limited?"}
+    RL -->|"Yes"| Err1["429 Rate Limit Exceeded"]
+    RL -->|"No"| Val{"Valid Input?"}
+    Val -->|"No"| Err2["400 Validation Error"]
+    Val -->|"Yes"| Check{"Email Exists?"}
+    Check -->|"Yes"| Err3["400 Email Already Exists"]
+    Check -->|"No"| Hash["Hash Password (Argon2)"]
+    Hash --> Save[("Save to DB")]
+    Save --> GenTokens["Generate JWT Tokens"]
+    GenTokens --> Return["Return 200 OK + Tokens"]
 ```
 
 
@@ -176,13 +176,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([User submits email/pass]) --> RL{Rate Limited?}
-    RL -- Yes --> Err1[429 Rate Limit Exceeded]
-    RL -- No --> Lookup[Lookup User by Email]
-    Lookup --> CheckPass{Password Match?}
-    CheckPass -- No --> Err2[401 Invalid Credentials]
-    CheckPass -- Yes --> GenTokens[Generate JWT Tokens]
-    GenTokens --> Return[Return 200 OK + Tokens]
+    Start(["User submits email/pass"]) --> RL{"Rate Limited?"}
+    RL -->|"Yes"| Err1["429 Rate Limit Exceeded"]
+    RL -->|"No"| Lookup["Lookup User by Email"]
+    Lookup --> CheckPass{"Password Match?"}
+    CheckPass -->|"No"| Err2["401 Invalid Credentials"]
+    CheckPass -->|"Yes"| GenTokens["Generate JWT Tokens"]
+    GenTokens --> Return["Return 200 OK + Tokens"]
 ```
 
 

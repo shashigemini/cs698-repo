@@ -7,10 +7,10 @@ As a commuter, I want to access the chat interface via a responsive mobile web o
 
 ```mermaid
 flowchart TD
-    Flutter[Flutter App] -->|HTTPS| CDN[Static Hosting (Web)]
-    Flutter -->|App Store| iOS[iOS Devices]
-    Flutter -->|Play Store| Android[Android Devices]
-    Flutter -->|REST APIs| Backend[FastAPI Backend]
+    Flutter["Flutter App"] -->|"HTTPS"| CDN["Static Hosting (Web)"]
+    Flutter -->|"App Store"| iOS["iOS Devices"]
+    Flutter -->|"Play Store"| Android["Android Devices"]
+    Flutter -->|"REST APIs"| Backend["FastAPI Backend"]
 ```
 
 
@@ -285,16 +285,16 @@ Chat Flow State Machine
 
 ```mermaid
 flowchart TD
-    Start([App Opens]) --> Init[StartupScreen]
-    Init --> CheckTokens{Valid Access Token?}
-    CheckTokens -- Yes --> AuthChat[ChatScreen (Auth)]
-    CheckTokens -- No --> CheckRefresh{Valid Refresh Token?}
-    CheckRefresh -- Yes --> Refresh[Call /auth/refresh]
-    Refresh -- Success --> AuthChat
-    Refresh -- Fail --> GuestScreen[AuthScreen]
-    CheckRefresh -- No --> GuestScreen
-    GuestScreen -->|Continue as Guest| GuestChat[ChatScreen (Guest)]
-    GuestScreen -->|Login| AuthChat
+    Start(["App Opens"]) --> Init["StartupScreen"]
+    Init --> CheckTokens{"Valid Access Token?"}
+    CheckTokens -->|"Yes"| AuthChat["ChatScreen (Auth)"]
+    CheckTokens -->|"No"| CheckRefresh{"Valid Refresh Token?"}
+    CheckRefresh -->|"Yes"| Refresh["Call /auth/refresh"]
+    Refresh -->|"Success"| AuthChat
+    Refresh -->|"Fail"| GuestScreen["AuthScreen"]
+    CheckRefresh -->|"No"| GuestScreen
+    GuestScreen -->|"Continue as Guest"| GuestChat["ChatScreen (Guest)"]
+    GuestScreen -->|"Login"| AuthChat
 ```
 
 
