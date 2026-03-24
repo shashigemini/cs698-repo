@@ -42,9 +42,18 @@ flowchart TD
     Service --> |"SQLAlchemy ORM"| DB
 ```
 
-### Data Abstraction & Stable Storage
+## Data Abstraction
 
-The module uses a relational database model (PostgreSQL) accessed via SQLAlchemy ORM. This stable storage mechanism guarantees that user records and token revocation lists persist across application restarts and prevents data loss in the event of a crash.
+To formalize the data abstraction used in the module (referencing MIT’s 6.005 paradigms), we define the authentication system as an Abstract Data Type (ADT):
+
+*   **Abstract State**: The abstract state consists of a set of registered identities (users and their E2EE credentials) and a list of invalidated/expired sessions.
+*   **Representation (Rep)**: The representation uses a relational database pattern mapping to SQL models (`User`, `E2EEKey`, `RevokedToken`), plus stateless HMAC-signed JSON Web Tokens on the client.
+*   **Representation Invariant (RI)**: Every `user_id` inside `E2EEKey` and `RevokedToken` must trace back to a valid, existing `id` in the `users` table. Email addresses must be strictly unique within the system. Revoked JWTs must have a unique `jti`.
+*   **Abstraction Function (AF(Rep))**: Maps the physical database rows and valid cryptographic JWT signatures down to the logical set of authenticated platform users.
+
+## Stable Storage
+
+We determined that the stable storage mechanism for the module must be a robust relational database (PostgreSQL) accessed via SQLAlchemy ORM. Relying on an in-memory data structure (like Python dictionaries) is completely unacceptable; if the application process crashes or the Docker container restarts, all registered users and the token revocation blacklist would be instantly lost. Customers hate data loss, so writing transactions securely to Postgres guarantees data durability.
 
 ## Data Schemas
 
