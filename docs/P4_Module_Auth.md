@@ -205,4 +205,3 @@ classDiagram
     User "1" *-- "1" E2EEKey : Contains composition
     User "1" *-- "*" RevokedToken : Contains composition
 ```
-```
