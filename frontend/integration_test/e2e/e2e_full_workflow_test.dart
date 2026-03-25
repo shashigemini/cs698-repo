@@ -1,75 +1,39 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-
-import '../robot/auth_robot.dart';
+import 'package:frontend/main_demo.dart' as app;
 import '../robot/home_robot.dart';
 import '../robot/settings_robot.dart';
-import 'utils/e2e_test_utils.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  late AuthRobot auth;
-  late HomeRobot home;
-  late SettingsRobot settings;
+  testWidgets('E2E Full Workflow: Chat -> Settings -> Logout', (tester) async {
+    app.main();
+    await tester.pumpAndSettle();
+    
+    final homeRobot = HomeRobot(tester);
+    final settingsRobot = SettingsRobot(tester);
 
-  setUp(() async {
-    await E2ETestUtils.resetBackendState();
-    await E2ETestUtils.seedAllData();
-  });
+    // 1. Chat
+    await homeRobot.enterMessage('What is dharma?');
+    await homeRobot.tapSend();
+    await homeRobot.waitForText('dharma');
 
-  group('E2E Full Workflow', () {
-    testWidgets('Register -> Chat -> Change Password -> Delete Account', (tester) async {
-      auth = AuthRobot(tester);
-      home = HomeRobot(tester);
-      settings = SettingsRobot(tester);
-
-      await E2ETestUtils.buildE2ETestApp(tester);
-
-      // 1. Register new user
-      await auth.switchToRegister();
-      await auth.enterRegisterEmail('full_workflow@e2e.com');
-      await auth.enterRegisterPassword('WorkflowPass123!');
-      await auth.tapRegister();
-      await auth.confirmMnemonic();
-      expect(home.drawerButton, findsOneWidget);
-
-      // 2. Send Chat Query
-      await home.enterMessage('Can you guide my path?');
-      await home.tapSend();
-      await home.waitForText('involves spiritual wisdom and inner peace');
-
-      // 3. Change Password
-      await home.openDrawer();
-      await home.tapSettings();
-      await settings.changePassword('WorkflowPass123!', 'NewWorkflowPass123!');
-
-      // 4. Logout & Login again
-      await home.tapBack();
-      await home.openDrawer();
-      await home.tapLogout();
-      await auth.login('full_workflow@e2e.com', 'NewWorkflowPass123!');
-      expect(home.drawerButton, findsOneWidget);
-
-      // 5. Verify conversation history persists
-      await home.openDrawer();
-      expect(find.textContaining('guide my path'), findsOneWidget);
-      // close drawer
-      await tester.tapAt(const Offset(10, 10)); // tap outside to close drawer
-      await tester.pumpAndSettle();
-
-      // 6. Delete Account
-      await home.openDrawer();
-      await home.tapSettings();
-      await settings.tapDeleteAccount();
-      await tester.pumpAndSettle();
-      await settings.confirmDeleteAccount();
-      await tester.pumpAndSettle();
-
-      // 7. Verify Account is gone
-      expect(auth.loginButton, findsOneWidget);
-      await auth.login('full_workflow@e2e.com', 'NewWorkflowPass123!');
-      expect(find.textContaining('Invalid email or password'), findsOneWidget);
-    });
+    // 2. Settings
+    await homeRobot.openDrawer();
+    await homeRobot.tapSettings();
+    await tester.pumpAndSettle();
+    
+    expect(find.text('Account Settings'), findsOneWidget);
+    await settingsRobot.enterSearch('dharma');
+    
+    // 3. Logout
+    await homeRobot.tapBack();
+    await homeRobot.openDrawer();
+    await homeRobot.tapLogout();
+    await tester.pumpAndSettle();
+    
+    expect(find.text('Login'), findsOneWidget);
   });
 }

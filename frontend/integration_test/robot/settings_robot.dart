@@ -21,18 +21,20 @@ class SettingsRobot {
 
   // Robust finders for specific items
   Finder exportButtonForItem(String title) => find.descendant(
-    of: find.ancestor(of: find.text(title), matching: find.byType(ListTile)),
-    matching: find.byTooltip('Export'),
-  );
+        of: find.ancestor(
+            of: find.text(title), matching: find.byType(ListTile)),
+        matching: find.byTooltip('Export'),
+      );
 
   Finder deleteButtonForItem(String title) => find.descendant(
-    of: find.ancestor(of: find.text(title), matching: find.byType(ListTile)),
-    matching: find.byTooltip('Delete'),
-  );
+        of: find.ancestor(
+            of: find.text(title), matching: find.byType(ListTile)),
+        matching: find.byTooltip('Delete'),
+      );
 
   // Actions
   Future<void> enterSearch(String query) async {
-    debugPrint('Robot: Entering search query: "$query"');
+    debugPrint('Robot: Entering search query: \"\$query\"');
     await tester.tap(searchField);
     await tester.pumpAndSettle();
     await tester.enterText(searchField, query);
@@ -40,7 +42,7 @@ class SettingsRobot {
   }
 
   Future<void> tapExport(String conversationTitle) async {
-    debugPrint('Robot: Tapping export button for "$conversationTitle"');
+    debugPrint('Robot: Tapping export button for \"\$conversationTitle\"');
     final button = exportButtonForItem(conversationTitle);
 
     await tester.ensureVisible(button);
@@ -50,7 +52,7 @@ class SettingsRobot {
   }
 
   Future<void> tapDeleteConversation(String conversationTitle) async {
-    debugPrint('Robot: Tapping delete button for "$conversationTitle"');
+    debugPrint('Robot: Tapping delete button for \"\$conversationTitle\"');
     final button = deleteButtonForItem(conversationTitle);
 
     await tester.ensureVisible(button);

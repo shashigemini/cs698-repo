@@ -8,23 +8,19 @@ class HomeRobot {
   HomeRobot(this.tester);
 
   // Finders
-  Finder get chatInputField => find.byKey(const Key('chat_input_field'));
-  Finder get chatSendButton => find.byKey(const Key('chat_send_button'));
-  Finder get drawerButton => find.byTooltip('Open navigation menu');
-  Finder get newConversationMenu => find.text('New Conversation');
-  Finder get logoutMenu => find.byKey(const Key('logout_menu_item'));
+  Finder get chatInputField => find.byType(TextField).first;
+  Finder get chatSendButton => find.byIcon(LucideIcons.send);
+  Finder get drawerButton => find.byIcon(LucideIcons.menu);
+  
+  // Drawer items
   Finder get signInMenu => find.text('Sign In / Register');
+  Finder get logoutMenu => find.text('Logout');
   Finder get settingsMenu => find.text('Account Settings');
-  Finder get rateLimitBanner => find.byKey(const Key('rate_limit_banner'));
-  Finder get shareButton => find.byIcon(LucideIcons.share2);
-  Finder citationByText(String text) => find.textContaining(text);
-  Finder get citationBottomSheet => find.text('Scripture Verse');
+  Finder get newConversationMenu => find.text('New Conversation');
 
   // Actions
   Future<void> enterMessage(String message) async {
-    // Per project rule 3.7: tap first to ensure focus on Windows,
-    // then enterText. Avoid pumpAndSettle which can hang on chat animations.
-    await tester.tap(chatInputField);
+    debugPrint('Robot: Entering message: \"\$message\"');
     await tester.pump(const Duration(milliseconds: 100));
     await tester.enterText(chatInputField, message);
     await tester.pump(const Duration(milliseconds: 100));
@@ -77,36 +73,64 @@ class HomeRobot {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
-  Future<void> waitForText(String text, {Duration timeout = const Duration(seconds: 10)}) async {
+  Future<void> waitForText(String text,
+      {Duration timeout = const Duration(seconds: 10)}) async {
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsed < timeout) {
       if (tester.any(find.textContaining(text))) {
-        debugPrint('Robot: Found expected text "$text" after ${stopwatch.elapsedMilliseconds}ms');
+        debugPrint(
+            'Robot: Found expected text \"\$text\" after \${stopwatch.elapsedMilliseconds}ms');
         return;
       }
       if (stopwatch.elapsedMilliseconds % 1000 == 0) {
-        debugPrint('Robot: Still waiting for "$text" (${stopwatch.elapsed.inSeconds}s)...');
+        debugPrint(
+            'Robot: Still waiting for \"\$text\" (\${stopwatch.elapsed.inSeconds}s)...');
       }
       await tester.pump(const Duration(milliseconds: 100));
     }
-    debugPrint('Robot: Timed out! Current UI finding for partial "involves spiritual":');
+    debugPrint(
+        'Robot: Timed out! Current UI finding for partial \"involves spiritual\":');
     try {
       final matches = find.textContaining('involves spiritual').evaluate();
-      debugPrint('Robot: Matches found: ${matches.length}');
+      debugPrint('Robot: Matches found: \${matches.length}');
       for (final m in matches) {
-        debugPrint('Robot: Match content: ${(m.widget as Text).data}');
+        debugPrint('Robot: Match content: \${(m.widget as Text).data}');
       }
     } catch (e) {
-      debugPrint('Robot: Error during debug dump: $e');
+      debugPrint('Robot: Error during debug dump: \$e');
     }
-    throw TestFailure('Timed out waiting for text: "$text"');
+    throw TestFailure('Timed out waiting for text: \"\$text\"');
   }
 
   Future<void> tapSuggestion(String suggestionText) async {
-    debugPrint('Robot: Tapping suggestion: "$suggestionText"');
+    debugPrint('Robot: Tapping suggestion: \"\$suggestionText\"');
     await tester.tap(find.text(suggestionText));
     // Avoid pumpAndSettle: suggestion triggers TypingIndicator
     // which has an infinite animation (project rule 3.3).
     await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  Future<void> tapConversation(String title) async {
+    debugPrint('Robot: Tapping conversation with title: \"\$title\"');
+    final conversationItem = find.textContaining(title);
+    await tester.ensureVisible(conversationItem);
+    await tester.tap(conversationItem);
+    // Wait for history to load (messages removed, then new ones appear)
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> expectMessageToAppear(String text,
+      {int timeoutSeconds = 5}) async {
+    final finder = find.textContaining(text);
+    var seconds = 0;
+    while (tester.any(finder) == false && seconds < timeoutSeconds) {
+      debugPrint('Robot: Waiting for message \"\$text\"...');
+      await tester.pump(const Duration(seconds: 1));
+      seconds++;
+    }
+    expect(finder, findsAtLeastNWidgets(1),
+        reason: 'Message \"\$text\" did not appear after \${timeoutSeconds}s');
   }
 }
