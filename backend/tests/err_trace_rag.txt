@@ -1,0 +1,192 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0 -- /usr/local/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-0.23.8, anyio-4.12.1, cov-4.1.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 6 items
+
+tests/test_pdf_parser.py::test_parse_pdf_success PASSED                  [ 16%]
+tests/test_pdf_parser.py::test_parse_pdf_empty_document PASSED           [ 33%]
+tests/test_pdf_parser.py::test_parse_pdf_invalid_file FAILED             [ 50%]
+tests/test_qdrant_store.py::test_upsert_document_chunks PASSED           [ 66%]
+tests/test_qdrant_store.py::test_upsert_document_chunks_mismatch PASSED  [ 83%]
+tests/test_qdrant_store.py::test_delete_document_chunks FAILED           [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_parse_pdf_invalid_file __________________________
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 344, in from_call
+    result: TResult | None = func()
+                             ^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 246, in <lambda>
+    lambda: runtest_hook(item=item, **kwds), when=when, reraise=reraise
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/logging.py", line 850, in pytest_runtest_call
+    yield
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 53, in run_old_style_hookwrapper
+    return result.get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_result.py", line 103, in get_result
+    raise exc.with_traceback(tb)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 38, in run_old_style_hookwrapper
+    res = yield
+          ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/capture.py", line 900, in pytest_runtest_call
+    return (yield)
+            ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/skipping.py", line 263, in pytest_runtest_call
+    return (yield)
+            ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 178, in pytest_runtest_call
+    item.runtest()
+  File "/usr/local/lib/python3.11/site-packages/_pytest/python.py", line 1671, in runtest
+    self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 53, in run_old_style_hookwrapper
+    return result.get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_result.py", line 103, in get_result
+    raise exc.with_traceback(tb)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 38, in run_old_style_hookwrapper
+    res = yield
+          ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/python.py", line 157, in pytest_pyfunc_call
+    result = testfunction(**testargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/tests/test_pdf_parser.py", line 40, in test_parse_pdf_invalid_file
+    with patch("app.rag.pdf_parser.pypdf.PdfReader", side_effect=pypdf.errors.PdfError("Bad PDF")):
+                                                                 ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'pypdf.errors' has no attribute 'PdfError'
+_________________________ test_delete_document_chunks __________________________
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 344, in from_call
+    result: TResult | None = func()
+                             ^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 246, in <lambda>
+    lambda: runtest_hook(item=item, **kwds), when=when, reraise=reraise
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/logging.py", line 850, in pytest_runtest_call
+    yield
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 53, in run_old_style_hookwrapper
+    return result.get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_result.py", line 103, in get_result
+    raise exc.with_traceback(tb)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 38, in run_old_style_hookwrapper
+    res = yield
+          ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/capture.py", line 900, in pytest_runtest_call
+    return (yield)
+            ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/_pytest/skipping.py", line 263, in pytest_runtest_call
+    return (yield)
+            ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/runner.py", line 178, in pytest_runtest_call
+    item.runtest()
+  File "/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py", line 440, in runtest
+    super().runtest()
+  File "/usr/local/lib/python3.11/site-packages/_pytest/python.py", line 1671, in runtest
+    self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 53, in run_old_style_hookwrapper
+    return result.get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_result.py", line 103, in get_result
+    raise exc.with_traceback(tb)
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 38, in run_old_style_hookwrapper
+    res = yield
+          ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/_pytest/python.py", line 157, in pytest_pyfunc_call
+    result = testfunction(**testargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py", line 906, in inner
+    _loop.run_until_complete(task)
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/app/tests/test_qdrant_store.py", line 68, in test_delete_document_chunks
+    await store.delete_document_chunks(document_id)
+                                       ^^^^^^^^^^^
+NameError: name 'document_id' is not defined
+=============================== warnings summary ===============================
+tests/test_qdrant_store.py::test_upsert_document_chunks
+  /usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:761: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /app/tests/conftest.py:29
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_pdf_parser.py::test_parse_pdf_invalid_file - AttributeError...
+FAILED tests/test_qdrant_store.py::test_delete_document_chunks - NameError: n...
+==================== 2 failed, 4 passed, 1 warning in 2.91s ====================
