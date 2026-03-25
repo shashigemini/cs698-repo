@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:frontend/features/settings/presentation/settings_screen.dart';
+import 'package:frontend/core/constants/app_strings.dart';
 import 'package:frontend/features/admin/domain/repositories/admin_repository.dart';
 import 'package:frontend/features/admin/data/providers/admin_repository_provider.dart';
 import 'package:frontend/core/providers/demo_mode_provider.dart';
@@ -59,6 +60,42 @@ class MockFilePicker extends FilePicker {
 }
 
 void main() {
+  testWidgets('Demo panel demo text fields have expected label text', (tester) async {
+    FilePicker.platform = MockFilePicker();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isDemoModeProvider.overrideWithValue(true),
+          adminRepositoryProvider.overrideWithValue(MockAdminRepository()),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: SettingsScreen()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final titleField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == AppStrings.demoPdfTitle,
+      description: 'TextField with label ${AppStrings.demoPdfTitle}',
+    );
+
+    final authorField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == AppStrings.demoPdfAuthor,
+      description: 'TextField with label ${AppStrings.demoPdfAuthor}',
+    );
+
+    final idField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == AppStrings.demoPdfLogicalId,
+      description: 'TextField with label ${AppStrings.demoPdfLogicalId}',
+    );
+
+    expect(titleField, findsOneWidget);
+    expect(authorField, findsOneWidget);
+    expect(idField, findsOneWidget);
+  });
+
   testWidgets('Demo panel PDF upload test', (tester) async {
     FilePicker.platform = MockFilePicker();
     

@@ -119,7 +119,7 @@ abstract final class AppStrings {
   // ── Demo Admin Panel ────────────────────────────────────────
   static const demoAdminTitle = 'Demo Admin Panel';
   static const demoUploadPdf = 'Upload PDF Document';
-  static const demoPdfTitle = 'Document Title';
+  static const demoPdfTitle = 'PDF Title';
   static const demoPdfAuthor = 'Author (Optional)';
   static const demoPdfLogicalId = 'Logical Book ID (e.g. gita_01)';
   static const demoUploadButton = 'Upload and Ingest';
