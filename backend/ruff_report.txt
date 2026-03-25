@@ -1,0 +1,15 @@
+backend/ruff_report.txt:
+backend/ruff.toml:1:1: I001 [*] Import block is un-sorted or un-formatted
+backend/app/main.py:24:1: E401 Multiple imports on one line
+backend/app/main.py:42:1: E302 Expected 2 blank lines, found 1
+backend/app/main.py:56:5: F841 Local variable `user_input` is assigned to but never used
+backend/app/main.py:89:1: E303 Too many blank lines (3)
+backend/app/api/endpoints/chat.py:12:1: F401 `json` imported but unused
+backend/app/api/endpoints/chat.py:45:5: F841 Local variable `temp_res` is assigned to but never used
+backend/app/db/session.py:8:1: F401 `sqlalchemy.orm.Session` imported but unused
+backend/app/models/user.py:15:1: E302 Expected 2 blank lines, found 1
+backend/app/schemas/chat.py:5:1: F401 `typing.Optional` imported but unused
+backend/app/services/pdf_service.py:22:9: F841 Local variable `page_count` is assigned to but never used
+backend/app/services/pdf_service.py:56:1: E302 Expected 2 blank lines, found 1
+Found 11 errors.
+[*] 1 fixable with the `--fix` option (1 intake).
