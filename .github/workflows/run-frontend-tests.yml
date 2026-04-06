@@ -1,0 +1,30 @@
+name: Frontend Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        architecture: x64
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Run specific frontend tests
+      run: |
+        flutter test \
+          test/core/services/cryptography_service_test.dart \
+          test/features/chat/application/chat_controller_test.dart \
+          --coverage

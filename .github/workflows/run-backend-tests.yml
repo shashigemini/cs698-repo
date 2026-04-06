@@ -1,0 +1,35 @@
+name: Backend Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        
+    - name: Install Poetry
+      run: curl -sSL https://install.python-poetry.org | python3 -
+      
+    - name: Install dependencies
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        poetry install --no-root
+        
+    - name: Run specific backend tests
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        poetry run pytest tests/test_security.py tests/test_auth_service.py -v \
+          --cov=app.core.security \
+          --cov=app.services.auth_service \
+          --cov-report=term-missing
