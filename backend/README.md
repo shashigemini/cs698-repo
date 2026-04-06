@@ -55,19 +55,16 @@ We use a dedicated development compose file (`dev_test/docker-compose.dev.yml`) 
    ```
 
 ### 3. Testing
-We support two testing workflows. For comprehensive details, see the backend testing workflow guide.
+For a complete guide on our multi-layered testing strategy (Unit, Integration, E2E, and Mutation), see the **[Comprehensive Test Suite & Operations Report](file:///workspaces/cs698-repo/docs/test_suite_report.md)**.
 
-- **Containerized Integration Tests (Recommended):** Tests against real, ephemeral Postgres, Redis, and Qdrant containers.
+We support two primary backend testing workflows:
+- **Fast Local Suite (Unit & Fast Integration):** Perfect for iterative development. Uses a local SQLite database and mocked Redis.
   ```bash
-  # Linux/macOS
-  ./backend/scripts/run_tests.sh
-  
-  # Windows
-  .\backend\scripts\run_tests.bat
+  ./backend/scripts/run_local_tests.sh
   ```
-- **Local SQLite/Mocked Tests (Fast):** Tests using a local SQLite database and mocked Redis. Perfect for fast iterations.
+- **Robust Docker Suite (Full Integration):** Tests against real, ephemeral Postgres, Redis, and Qdrant containers to ensure production-like behavior.
   ```bash
-  bash ./backend/scripts/run_local_tests.sh
+  ./backend/scripts/run_tests.sh
   ```
 
 ### 4. Teardown

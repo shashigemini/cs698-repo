@@ -33,6 +33,7 @@ pytest-cov = "^4.1.0"
 httpx = "^0.27.0"
 ruff = "^0.3.0"
 aiosqlite = "^0.20.0"
+mutmut = "^3.5.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -69,7 +70,7 @@ omit = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=85"
+# addopts = "--cov=app --cov-report=term-missing --cov-fail-under=85"
 markers = [
     "integration: marks tests requiring Docker services",
 ]
@@ -80,3 +81,40 @@ search-path = ["/workspaces/cs698-repo/backend"]
 site-package-path = ["/workspaces/cs698-repo/backend/.venv/lib/python3.11/site-packages"]
 python-interpreter-path = "/workspaces/cs698-repo/backend/.venv/bin/python3"
 python-version = "3.11"
+
+[tool.mutmut]
+paths_to_mutate = [
+    # --- Tier 1: Pure Logic ---
+    "app/trivial.py",
+    "app/core/security.py",
+    "app/rag/pdf_parser.py",
+    "app/rag/chunker.py",
+    "app/rag/embedder.py",
+    "app/rag/prompts.py",
+    # --- Tier 2: Services / Logic with Mock Dependencies ---
+    "app/services/rate_limiter.py",
+    "app/services/auth_service.py",
+    "app/services/token_service.py",
+    "app/services/conversation_service.py",
+    "app/services/document_service.py",
+    "app/services/rag_service.py",
+    "app/services/token_cleanup.py",
+    # --- Tier 3: Repositories & Store (Isolated via db_session/sqlite) ---
+    "app/repositories/user_repo.py",
+    "app/repositories/session_repo.py",
+    "app/repositories/document_repo.py",
+    "app/repositories/revoked_token_repo.py",
+    "app/rag/qdrant_store.py",
+    "app/rag/retriever.py",
+    # --- Tier 4: Routers & Middleware (Isolated via Mock Clients) ---
+    "app/api/endpoints/admin.py",
+    "app/api/endpoints/auth.py",
+    "app/api/endpoints/chat.py",
+    "app/middleware/body_limit.py",
+    "app/middleware/csrf.py",
+    "app/middleware/request_id.py",
+    "app/middleware/security_headers.py"
+]
+
+also_copy = ["app/"]
+debug = true

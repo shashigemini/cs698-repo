@@ -13,18 +13,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
 
 from app.config import Settings
-import app.models  # noqa: F401 - ensure models are registered
-from app.core.database import Base
 
+# --- Mutation Testing Guard ---
+MUTANT_RUN = os.environ.get("MUTANT_UNDER_TEST") is not None
 
-# --- Test Settings ---
+# --- Basic Fixtures & Helpers (Allowed in Sandbox) ---
 
 @pytest.fixture
 def test_settings() -> Settings:
@@ -75,15 +70,29 @@ def test_settings() -> Settings:
         rate_limit_global_window_seconds=60,
     )
 
+def make_user_id() -> str:
+    """Generate a random user ID string."""
+    return str(uuid.uuid4())
 
-# --- In-Memory Database ---
+def utc_now() -> datetime:
+    """Get the current UTC datetime."""
+    return datetime.now(timezone.utc)
+
+# --- Heavy Fixtures (Guarded) ---
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+import app.models  # noqa: F401 - ensure models are registered
+from app.core.database import Base
+
 
 @pytest_asyncio.fixture
 async def db_session(test_settings: Settings) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a database session for isolated tests.
-
-    Creates all tables before yield, drops after.
-    """
+    """Provide a database session for isolated tests."""
     engine = create_async_engine(
         test_settings.database_url,
         echo=False,
@@ -105,8 +114,6 @@ async def db_session(test_settings: Settings) -> AsyncGenerator[AsyncSession, No
     await engine.dispose()
 
 
-# --- Mock Redis ---
-
 @pytest.fixture
 def mock_redis():
     """Provide a mock Redis client with in-memory counters."""
@@ -117,7 +124,7 @@ def mock_redis():
         return store[key]
 
     async def mock_expire(key, ttl):
-        pass  # TTL not tracked in mock
+        pass
 
     async def mock_ttl(key):
         return 60
@@ -131,18 +138,6 @@ def mock_redis():
     redis.expire = AsyncMock(side_effect=mock_expire)
     redis.ttl = AsyncMock(side_effect=mock_ttl)
     redis.get = AsyncMock(side_effect=mock_get)
-    redis._store = store  # Expose for assertions
+    redis._store = store
 
     return redis
-
-
-# --- Test Helpers ---
-
-def make_user_id() -> str:
-    """Generate a random user ID string."""
-    return str(uuid.uuid4())
-
-
-def utc_now() -> datetime:
-    """Get the current UTC datetime."""
-    return datetime.now(timezone.utc)

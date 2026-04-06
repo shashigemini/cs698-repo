@@ -30,7 +30,7 @@ class ChatController extends _$ChatController {
 
     if (!_initialized) {
       _initialized = true;
-      _init();
+      Future.microtask(_init);
     }
     return const ChatState();
   }

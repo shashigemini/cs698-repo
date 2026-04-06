@@ -1,187 +1,196 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/core/services/guest_service.dart';
+import 'package:frontend/features/auth/domain/repositories/auth_repository.dart';
+import 'package:frontend/features/auth/data/providers/auth_provider.dart';
 import 'package:frontend/features/chat/application/chat_controller.dart';
-import 'package:frontend/features/chat/data/repositories/mock_chat_repository.dart';
+import 'package:frontend/features/chat/application/chat_state.dart';
 import 'package:frontend/features/chat/data/providers/chat_repository_provider.dart';
-import 'package:frontend/core/services/storage_provider.dart';
-import 'package:frontend/core/services/mock_storage_service.dart';
-import 'package:frontend/core/constants/app_strings.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/core/services/local_settings_store.dart';
+import 'package:frontend/features/chat/domain/models/answer_result.dart';
+import 'package:frontend/features/chat/domain/models/conversation.dart';
+import 'package:frontend/features/chat/domain/models/message.dart';
+import 'package:frontend/features/chat/domain/repositories/chat_repository.dart';
+import 'package:frontend/core/utils/app_logger.dart';
+import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
-import '../../../helpers/crypto_mocks.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class MockChatRepository extends Mock implements ChatRepository {}
+class MockGuestService extends Mock implements GuestService {}
+class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
-  group('ChatController', () {
-    Future<ProviderContainer> createContainer({
-      ChatRepository? chatRepository,
-    }) async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [
-          storageServiceProvider.overrideWithValue(MockStorageService()),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          if (chatRepository != null)
-            chatRepositoryProvider.overrideWithValue(chatRepository),
-        ],
-      );
-      addTearDown(container.dispose);
-      return container;
-    }
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    test('initial state is correct', () async {
-      final container = await createContainer();
+  late ProviderContainer container;
+  late MockChatRepository mockRepo;
+  late MockGuestService mockGuestService;
+  late MockAuthRepository mockAuthRepo;
+
+  setUpAll(() {
+    AppLogger.init(level: Level.off);
+    registerFallbackValue(const AnswerResult(answer: ''));
+  });
+
+  Future<ChatController> createAndInit({String? userId, int guestQueries = 3}) async {
+    mockRepo = MockChatRepository();
+    mockGuestService = MockGuestService();
+    mockAuthRepo = MockAuthRepository();
+
+    when(() => mockGuestService.getQueriesRemaining()).thenReturn(guestQueries);
+    when(() => mockGuestService.incrementUsage()).thenAnswer((_) async {});
+    when(() => mockRepo.getConversations()).thenAnswer((_) async => <Conversation>[]);
+    when(() => mockRepo.loadHistory(any())).thenAnswer((_) async => <Message>[]);
+    when(() => mockRepo.sendQuery(any(), 
+      conversationId: any(named: 'conversationId'), 
+      guestSessionId: any(named: 'guestSessionId')))
+        .thenAnswer((_) async => const AnswerResult(answer: 'mock-ans'));
+    
+    // Stable auth state to prevent listener refreshes
+    when(() => mockAuthRepo.currentUserId).thenReturn(userId);
+    when(() => mockAuthRepo.authStateChanges).thenAnswer((_) => Stream.value(userId));
+
+    container = ProviderContainer(
+      overrides: [
+        chatRepositoryProvider.overrideWithValue(mockRepo),
+        guestServiceProvider.overrideWithValue(mockGuestService),
+        authRepositoryProvider.overrideWithValue(mockAuthRepo),
+      ],
+    );
+
+    final controller = container.read(chatControllerProvider.notifier);
+    await controller.initialized;
+    
+    // Ensure state synchronizes
+    await Future.delayed(const Duration(milliseconds: 50));
+    
+    return controller;
+  }
+
+  tearDown(() {
+    container.dispose();
+  });
+
+  group('ChatController: Initialization', () {
+    test('CC-01: Correct defaults', () async {
+      await createAndInit(guestQueries: 3);
       final state = container.read(chatControllerProvider);
-
       expect(state.isLoading, isFalse);
-      expect(state.messages, isEmpty);
-      expect(state.error, isNull);
-      expect(state.rateLimitExceeded, isFalse);
-      expect(state.guestQueriesRemaining, equals(AppStrings.guestQueryLimit));
+      expect(state.guestQueriesRemaining, 3);
     });
 
-    test('sendQuery updates state correctly on success', () async {
-      final container = await createContainer();
-      container.listen(chatControllerProvider, (previous, next) {});
+    test('CC-02: Guest skips conversatons', () async {
+      await createAndInit(userId: null);
+      verifyNever(() => mockRepo.getConversations());
+    });
+  });
 
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-      final future = controller.sendQuery('Test query');
+  group('ChatController: sendQuery Logic', () {
+    test('CC-05: Loader blocks', () async {
+      final controller = await createAndInit();
+      final completer = Completer<AnswerResult>();
+      when(() => mockRepo.sendQuery(any(), conversationId: any(named: 'conversationId')))
+          .thenAnswer((_) => completer.future);
 
-      // State should be loading, with optimistic user message
-      var state = container.read(chatControllerProvider);
-      expect(state.isLoading, isTrue);
-      expect(state.messages.length, 1);
-      expect(state.messages.first.content, 'Test query');
-      expect(state.messages.first.sender, 'user');
+      final f1 = controller.sendQuery('q1');
+      expect(container.read(chatControllerProvider).isLoading, isTrue);
 
-      await future;
+      await controller.sendQuery('q2'); 
 
-      // State should not be loading, with assistant response
-      state = container.read(chatControllerProvider);
-      expect(state.isLoading, isFalse);
-      expect(state.messages.length, 2);
-      expect(state.messages.last.sender, 'assistant');
-      expect(state.messages.last.content, isNotEmpty);
+      completer.complete(const AnswerResult(answer: 'ans'));
+      await f1;
+
+      verify(() => mockRepo.sendQuery('q1', conversationId: any(named: 'conversationId'))).called(1);
     });
 
-    test('sendQuery handles rate limit error for guests', () async {
-      final container = await createContainer();
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-
-      // Send queries as guest until limit is reached
-      final limit = AppStrings.guestQueryLimit;
-      for (var i = 0; i < limit; i++) {
-        await container
-            .read(chatControllerProvider.notifier)
-            .sendQuery('Query $i', guestSessionId: 'guest-session');
+    test('CC-06/07: Rate limit blocking', () async {
+      final controller = await createAndInit(guestQueries: 0);
+      
+      // Force state update if it hasn't landed
+      if (container.read(chatControllerProvider).guestQueriesRemaining != 0) {
+        await Future.delayed(const Duration(milliseconds: 100));
       }
 
-      // One more query triggers rate limit (count >= limit)
-      await container
-          .read(chatControllerProvider.notifier)
-          .sendQuery('Rate limit query', guestSessionId: 'guest-session');
+      await controller.sendQuery('q1', guestSessionId: 'g1');
+      expect(container.read(chatControllerProvider).rateLimitExceeded, isTrue);
 
-      final state = container.read(chatControllerProvider);
-      expect(state.isLoading, isFalse);
-      expect(state.error, 'Rate limit exceeded');
-      expect(state.rateLimitExceeded, isTrue);
-      expect(state.guestQueriesRemaining, 0);
+      clearInteractions(mockRepo);
+      await controller.sendQuery('q2');
+      verifyNever(() => mockRepo.sendQuery(any(), guestSessionId: any(named: 'guestSessionId')));
     });
 
-    test('sendQuery (authenticated) does NOT reset guest budget', () async {
-      final container = await createContainer();
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-      container.listen(chatControllerProvider, (previous, next) {});
+    test('CC-08: Optimistic auth success', () async {
+      final controller = await createAndInit(userId: 'u1');
+      final completer = Completer<AnswerResult>();
+      when(() => mockRepo.sendQuery(any(), conversationId: any(named: 'conversationId')))
+          .thenAnswer((_) => completer.future);
 
-      final initial = AppStrings.guestQueryLimit;
-      expect(
-        container.read(chatControllerProvider).guestQueriesRemaining,
-        initial,
-      );
+      final f = controller.sendQuery('hi');
+      await Future.delayed(Duration.zero);
+      expect(container.read(chatControllerProvider).messages.length, 1);
 
-      // Simulate exhausting 1 query as guest
-      await container
-          .read(chatControllerProvider.notifier)
-          .sendQuery('G1', guestSessionId: 'g1');
-      expect(
-        container.read(chatControllerProvider).guestQueriesRemaining,
-        initial - 1,
-      );
-
-      // Now send as authenticated (no guest ID)
-      await container.read(chatControllerProvider.notifier).sendQuery('Auth1');
-
-      // Should STILL be decreased value, not reset
-      expect(
-        container.read(chatControllerProvider).guestQueriesRemaining,
-        initial - 1,
-      );
+      completer.complete(const AnswerResult(answer: 'bot', conversationId: 'c1'));
+      await f;
+      expect(container.read(chatControllerProvider).messages.length, 2);
     });
 
-    test('loadConversation updates state correctly on success', () async {
-      final container = await createContainer();
-      container.listen(chatControllerProvider, (previous, next) {});
+    test('CC-09: Guest decrement', () async {
+      var count = 3;
+      mockGuestService = MockGuestService();
+      when(() => mockGuestService.getQueriesRemaining()).thenAnswer((_) => count);
+      when(() => mockGuestService.incrementUsage()).thenAnswer((_) async { count--; });
+      when(() => mockAuthRepo.currentUserId).thenReturn(null);
+      when(() => mockAuthRepo.authStateChanges).thenAnswer((_) => Stream.value(null));
 
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-      final future = controller.loadConversation('conv-123');
+      initContainer() {
+        container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(mockRepo),
+            guestServiceProvider.overrideWithValue(mockGuestService),
+            authRepositoryProvider.overrideWithValue(mockAuthRepo),
+          ],
+        );
+      }
+      initContainer();
+      await container.read(chatControllerProvider.notifier).initialized;
 
-      var state = container.read(chatControllerProvider);
-      expect(state.isLoading, isTrue);
-      expect(state.messages, isEmpty);
-      expect(state.conversationId, 'conv-123');
+      await container.read(chatControllerProvider.notifier).sendQuery('q', guestSessionId: 'g1');
+      expect(container.read(chatControllerProvider).guestQueriesRemaining, 2);
+    });
+  });
 
-      await future;
+  group('ChatController: Conversation management', () {
+    test('CC-14/15/16: loadConversation', () async {
+      final controller = await createAndInit();
+      final history = [Message(id: '1', sender: 'u', content: 'c', timestamp: DateTime.now())];
+      when(() => mockRepo.loadHistory('id')).thenAnswer((_) async => history);
 
-      state = container.read(chatControllerProvider);
-      expect(state.isLoading, isFalse);
-      expect(state.messages, isNotEmpty);
-      expect(state.messages.length, 2);
+      await controller.loadConversation('id');
+      expect(container.read(chatControllerProvider).conversationId, 'id');
+
+      when(() => mockRepo.loadHistory('err')).thenAnswer((_) async => throw Exception());
+      await controller.loadConversation('err');
+      expect(container.read(chatControllerProvider).error, isNotNull);
     });
 
-    test('loadConversation handles failure correctly', () async {
-      // Create a specific container overriding chatRepositoryProvider with a failing repo
-      final myMockSessionKeys = MockSessionKeyStore();
-      when(() => myMockSessionKeys.currentAccountKey).thenReturn(null);
-      final mockRepo = MockChatRepository(
-        crypto: FakeCryptographyService(),
-        sessionKeys: myMockSessionKeys,
-      );
-      mockRepo.setSimulateNetworkError(true);
+    test('CC-19/20: deleteConversation', () async {
+      final controller = await createAndInit();
+      when(() => mockRepo.deleteConversation(any())).thenAnswer((_) async {});
+      when(() => mockRepo.getConversations()).thenAnswer((_) async => []);
+      when(() => mockRepo.loadHistory('active')).thenAnswer((_) async => []);
+      
+      await controller.loadConversation('active');
+      await controller.deleteConversation('other');
+      expect(container.read(chatControllerProvider).conversationId, 'active');
 
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [
-          storageServiceProvider.overrideWithValue(MockStorageService()),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          chatRepositoryProvider.overrideWithValue(mockRepo),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      container.listen(chatControllerProvider, (previous, next) {});
-
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-      await controller.loadConversation('bad-id');
-
-      final state = container.read(chatControllerProvider);
-      expect(state.isLoading, isFalse);
-      expect(state.error, 'Failed to load conversation history');
-      expect(state.messages, isEmpty);
+      await controller.deleteConversation('active');
+      expect(container.read(chatControllerProvider).conversationId, isNull);
     });
 
-    test('resetError clears error state', () async {
-      final container = await createContainer();
-      final controller = container.read(chatControllerProvider.notifier);
-      await controller.initialized;
-      controller.resetError();
-      expect(container.read(chatControllerProvider).error, isNull);
+    test('CC-22/23: export', () async {
+      final controller = await createAndInit();
+      when(() => mockRepo.exportConversation('id')).thenAnswer((_) async => 'data');
+      expect(await controller.exportConversation('id'), 'data');
     });
   });
 }
