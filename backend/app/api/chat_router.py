@@ -28,6 +28,9 @@ from app.services.rag_service import RAGService
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
+_DEFAULT_CONVERSATION_LIMIT = 20
+_MAX_CONVERSATION_LIMIT = 100
+
 
 @router.post("/query", response_model=QueryResponse)
 async def chat_query(
@@ -75,7 +78,11 @@ async def list_conversations(
     user: CurrentUser,
     session: DbSession,
     request: Request,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(
+        _DEFAULT_CONVERSATION_LIMIT,
+        ge=1,
+        le=_MAX_CONVERSATION_LIMIT,
+    ),
     offset: int = Query(0, ge=0),
 ) -> list[ConversationSummary]:
     """List all conversations for the authenticated user."""
