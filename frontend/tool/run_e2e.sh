@@ -6,7 +6,7 @@
 timestamp=$(date +"%Y%m%d_%H%M%S")
 resultsDir="test_results/e2e_$timestamp"
 backendDir="../backend"
-composeFile="$backendDir/docker/docker-compose.e2e.yml"
+composeFile="$backendDir/docker_configs/docker-compose.e2e.yml"
 
 echo -e "\033[0;36m[INFO] Starting E2E Orchestrated Run: e2e_$timestamp\033[0m"
 mkdir -p "$resultsDir"

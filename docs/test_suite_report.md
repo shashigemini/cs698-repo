@@ -97,7 +97,7 @@ E2E tests ensure that the **Flutter Frontend** correctly communicates with a **L
 **How to Run E2E**:
 ```bash
 # From the root directory:
-bash tool/run_e2e_integration.sh
+bash frontend/tool/run_e2e.sh
 ```
 
 ---

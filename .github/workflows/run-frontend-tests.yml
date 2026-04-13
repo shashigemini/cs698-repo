@@ -1,11 +1,19 @@
 name: Frontend Tests
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/run-frontend-tests.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/run-frontend-tests.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
         working-directory: ./frontend
@@ -18,13 +26,44 @@ jobs:
       with:
         channel: 'stable'
         architecture: x64
-        
+
+    - name: Prepare .env
+      run: |
+        if [ -f .env.web ]; then
+          cp .env.web .env
+        else
+          echo "API_BASE_URL=https://mock.api.spiritualqa.com" > .env
+          echo "ANDROID_PACKAGE_NAME=com.shashigemini.cs698repo" >> .env
+          echo "ANDROID_CERT_HASH=DUMMY_HASH" >> .env
+          echo "IOS_BUNDLE_ID=com.shashigemini.cs698repo" >> .env
+          echo "IOS_TEAM_ID=DUMMY_TEAM_ID" >> .env
+          echo "SECURITY_WATCHER_MAIL=security@spiritualqa.com" >> .env
+          echo "SSL_CERT_FINGERPRINT=DUMMY_FINGERPRINT" >> .env
+          echo "USE_SSL_PINNING=false" >> .env
+        fi
+
     - name: Install dependencies
       run: flutter pub get
-      
-    - name: Run specific frontend tests
+
+    - name: Check formatting
+      run: dart format --output=none --set-exit-if-changed lib test integration_test tool
+
+    - name: Static analysis
+      run: flutter analyze
+
+    - name: Generate code
+      run: dart run build_runner build --delete-conflicting-outputs
+
+    - name: Run full frontend test suite
+      run: flutter test --coverage
+
+    - name: Build web release bundle
       run: |
-        flutter test \
-          test/core/services/cryptography_service_test.dart \
-          test/features/chat/application/chat_controller_test.dart \
-          --coverage
+        flutter build web --target lib/main.dart --base-href "/cs698-repo/" --release
+
+    - name: Upload frontend build
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-web-build
+        path: frontend/build/web
