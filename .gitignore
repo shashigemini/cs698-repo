@@ -76,3 +76,4 @@ backend/mutmut_trace.log
 backend/pytest_output.log
 backend/pyreflyout.txt
 backend/.mutmut-ignore
+exported_conversations_*/
