@@ -1,36 +1,34 @@
 FROM python:3.11-slim-bookworm
 
-# Install core dependencies. 
-# libpq-dev is required for asyncpg, curl for healthchecks
+# Install core dependencies.
+# libpq-dev is required for asyncpg, curl for healthchecks.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     curl \
-    libpq-dev \
     gcc \
+    libpq-dev \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install poetry
+# Install Poetry in a way that is stable in both CI and local Docker builds.
 ENV POETRY_VERSION=1.8.2
-ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VIRTUALENVS_CREATE=false
-ENV PATH="$POETRY_HOME/bin:$PATH"
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
-# Set working directory
+# Set working directory.
 WORKDIR /app
 
-# Copy dependency files first for layer caching
+# Copy dependency files first for layer caching.
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies including dev (pytest, httpx, etc.)
+# Install dependencies including dev (pytest, httpx, etc.).
 RUN poetry install --with dev --no-interaction --no-ansi
 
-# Copy project code
+# Copy project code.
 COPY . .
 
-# Set environment to testing
+# Set environment to testing.
 ENV ENVIRONMENT=testing
 
-# Command to run tests
+# Command to run tests.
 CMD ["pytest", "--cov=app", "-v"]

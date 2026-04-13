@@ -5,13 +5,14 @@ on:
     branches:
       - frontend_development
       - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  verify-build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     defaults:
       run:
         working-directory: frontend
@@ -46,11 +47,37 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Static analysis
+        run: flutter analyze
+
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
+      - name: Run frontend tests
+        run: flutter test --coverage
+
       - name: Build Web
         run: flutter build web --target lib/main.dart --base-href "/cs698-repo/" --release
+
+      - name: Upload verified web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-frontend-web
+          path: frontend/build/web
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: verify-build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-frontend-web
+          path: frontend/build/web
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

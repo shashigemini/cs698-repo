@@ -8,8 +8,9 @@ from contextlib import asynccontextmanager
 import typing
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from openai import AsyncOpenAI
 
 from app.api.admin_router import router as admin_router
 from app.api.auth_router import router as auth_router
@@ -25,8 +26,41 @@ from app.middleware.body_limit import BodySizeLimitMiddleware
 from app.middleware.csrf import CSRFMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.rag.retriever import Retriever
 
 logger = get_logger(__name__)
+
+
+async def _check_qdrant_health(settings) -> bool:
+    """Check whether Qdrant is reachable for retrieval operations."""
+    if settings.environment == "testing":
+        return True
+
+    return await Retriever(settings).check_health()
+
+
+async def _check_openai_health(settings) -> bool:
+    """Check whether the OpenAI dependency is ready for generation."""
+    if settings.environment in {"testing", "e2e_testing"}:
+        return True
+
+    if settings.openai_api_key == "e2e-mock-key":
+        return True
+
+    if not settings.openai_api_key:
+        return False
+
+    try:
+        client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            max_retries=0,
+            timeout=5.0,
+        )
+        await client.models.list()
+        return True
+    except Exception as exc:
+        logger.warning("OpenAI health check failed: %s", exc)
+        return False
 
 
 @asynccontextmanager
@@ -118,6 +152,8 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if not settings.is_production else None,
         lifespan=lifespan,
     )
+    app.state.qdrant_health_check = lambda: _check_qdrant_health(settings)
+    app.state.openai_health_check = lambda: _check_openai_health(settings)
 
     # --- Middleware stack (order matters: outermost runs first) ---
 
@@ -195,29 +231,12 @@ def create_app() -> FastAPI:
         )
         return {"csrf_token": token}
 
-    # Health check with actual dependency status
     @app.get("/health/full")
-    async def full_health_check():
-        """Health check including dependency connectivity."""
-        from datetime import datetime, timezone
+    async def full_health_check(request: Request):
+        """Detailed health check including retrieval/generation dependencies."""
+        from app.api.health_router import health_check
 
-        db_ok = await app.state.database.check_health()
-        redis_ok = await app.state.redis.check_health()
-
-        status = "healthy" if (db_ok and redis_ok) else "degraded"
-
-        return {
-            "status": status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "version": settings.app_version,
-            "environment": settings.environment,
-            "services": {
-                "database": "up" if db_ok else "down",
-                "redis": "up" if redis_ok else "down",
-                "qdrant": "unknown",
-                "openai": "unknown",
-            },
-        }
+        return await health_check(request)
 
     return app
 

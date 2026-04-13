@@ -141,6 +141,22 @@ class TestHealthEndpoints:
         assert "services" in data
         assert data["services"]["database"] == "up"
         assert data["services"]["redis"] == "up"
+        assert data["services"]["qdrant"] == "up"
+        assert data["services"]["openai"] == "up"
+
+    @pytest.mark.asyncio
+    async def test_health_degraded_when_rag_dependency_down(self, app_client):
+        """GET /health should degrade when a RAG dependency is unavailable."""
+        app = app_client._transport.app
+        app.state.qdrant_health_check = AsyncMock(return_value=False)
+
+        response = await app_client.get("/health")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert data["services"]["qdrant"] == "down"
+        assert data["services"]["openai"] == "up"
 
 
 class TestAuthEndpoints:
