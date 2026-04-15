@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/test", tags=["test"])
 
 
 @router.get("/ready")
-async def check_ready(redis=Depends(get_redis), session: DbSession = Depends()):
+async def check_ready(session: DbSession, redis=Depends(get_redis)):
     """Wait for all test dependencies to be ready."""
     try:
         # Check DB
