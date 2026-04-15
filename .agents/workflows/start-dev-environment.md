@@ -8,23 +8,23 @@ This workflow launches the full-stack dev environment: PostgreSQL, Redis, Qdrant
 ## Prerequisites
 - Docker and Docker Compose installed
 - Flutter SDK available
-- Your OpenAI API key configured in `backend/.env`
+- Your OpenAI API key configured in `apps/backend/.env`
 
 > [!IMPORTANT]
-> **Devcontainer Networking**: Inside a devcontainer, Docker services are NOT on `localhost`. Use `host.docker.internal` to reach ports published by Docker Compose. The Flutter app's `API_BASE_URL` in `frontend/.env` must also point to `http://host.docker.internal:8000`.
+> **Devcontainer Networking**: Inside a devcontainer, Docker services are NOT on `localhost`. Use `host.docker.internal` to reach ports published by Docker Compose. The Flutter app's `API_BASE_URL` in `apps/frontend/.env` must also point to `http://host.docker.internal:8000`.
 
 ---
 
 // turbo-all
 1. Start the backend services (PostgreSQL, Redis, Qdrant, FastAPI) using Docker Compose. Data is persisted across restarts via named volumes.
 ```bash
-cd /workspaces/cs698-repo/backend/dev_test
+cd /workspaces/cs698-repo/apps/backend/dev_test
 docker compose -f docker-compose.dev.yml up --build -d
 ```
 
 2. Wait for all services to be healthy. Check with:
 ```bash
-cd /workspaces/cs698-repo/backend/dev_test
+cd /workspaces/cs698-repo/apps/backend/dev_test
 docker compose -f docker-compose.dev.yml ps
 ```
 All services should show `healthy` or `running`. The `app` service runs Alembic migrations on startup.
@@ -40,7 +40,7 @@ Expected: `{"status": "healthy", ...}` with database and redis both `"up"`.
 
 4. Start the Flutter frontend. Since we're in a devcontainer, use `web-server` device:
 ```bash
-cd /workspaces/cs698-repo/frontend
+cd /workspaces/cs698-repo/apps/frontend
 flutter run -d web-server --target lib/main_dev_e2e.dart
 ```
 This starts the app with Marionette MCP integration, demo mode (admin access without auth), and real API backend connection.
@@ -61,7 +61,7 @@ This starts the app with Marionette MCP integration, demo mode (admin access wit
 
 10. Stop backend services:
 ```bash
-cd /workspaces/cs698-repo/backend/dev_test
+cd /workspaces/cs698-repo/apps/backend/dev_test
 docker compose -f docker-compose.dev.yml down
 ```
 

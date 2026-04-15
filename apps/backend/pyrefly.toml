@@ -1,0 +1,2 @@
+project-includes = ["app", "tests", "scripts"]
+python-version = "3.11"

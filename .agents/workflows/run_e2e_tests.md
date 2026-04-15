@@ -7,8 +7,8 @@ This workflow covers how to launch the E2E backend infrastructure, seed the test
 
 1. Start the backend E2E services (PostgreSQL, Redis, Qdrant, FastAPI) using Docker Compose. Since the E2E environment uses `tmpfs` mounts, data is intentionally ephemeral but the containers will stay running for fast iteration.
 ```bash
-cd backend
-docker compose -f docker-compose.e2e.yml up -d
+cd apps/backend
+docker compose -f docker_configs/docker-compose.e2e.yml up -d
 ```
 
 2. Wait for the services to become healthy, then seed the test data. This will recreate the Qdrant collection, insert the test document chunks with predetermined vectors, and initialize the E2E configurations.
@@ -28,22 +28,22 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/test/seed
 
 **Windows (PowerShell):**
 ```powershell
-cd frontend
+cd apps/frontend
 .\tool\run_e2e.ps1
 ```
 
 **Linux / Devcontainer (Bash):**
 ```bash
-cd frontend
+cd apps/frontend
 bash tool/run_e2e.sh
 ```
 The shell script uses `xvfb-run` to provide a virtual display for headless Flutter GUI testing inside the devcontainer. The Dart test runner auto-detects Linux and uses `-d linux` instead of `-d windows`.
 
-The script creates a timestamped folder in `frontend/test_results/` containing `frontend_tests.log` and individual service logs (e.g., `app.log`, `db.log`).
+The script creates a timestamped folder in `apps/frontend/test_results/` containing `frontend_tests.log` and individual service logs (e.g., `app.log`, `db.log`).
 
 **Manual Execution (For Debugging):**
 If you need to keep the environment alive for debugging, follow these steps:
-1. `docker compose -f ../backend/docker-compose.e2e.yml up -d`
+1. `docker compose -f ../backend/docker_configs/docker-compose.e2e.yml up -d`
 2. `curl -X POST http://127.0.0.1:8000/api/test/seed`
 3. `dart run tool/run_integration_tests.dart integration_test/e2e/ --log-file e2e_manual.log`
 
@@ -55,6 +55,6 @@ If you need to keep the environment alive for debugging, follow these steps:
 
 4. Once you have finished your testing session, you can cleanly tear down the E2E backend infrastructure:
 ```bash
-cd backend
-docker compose -f docker-compose.e2e.yml down
+cd apps/backend
+docker compose -f docker_configs/docker-compose.e2e.yml down
 ```

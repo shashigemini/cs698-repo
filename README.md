@@ -3,31 +3,45 @@
 **Course**: CS 698 - Software Engineering  
 **Architecture**: Flutter frontend + containerized FastAPI backend on AWS EC2 + Amplify hosting.
 
+## Repo map
+
+- `apps/backend`: FastAPI backend, tests, Docker assets, and backend scripts.
+- `apps/frontend`: Flutter client, integration tests, and frontend tooling.
+- `apps/docs-site`: Docusaurus site for published project docs.
+- `infra/terraform`: AWS infrastructure definitions.
+- `infra/production`: EC2 production Docker Compose and reverse-proxy assets.
+- `docs/product`: Product and engineering reference docs.
+- `docs/course`: Course artifacts, specs, and reflection material.
+- `tools/dev`: Durable developer utilities.
+- `tools/ops`: Repo maintenance and operational helpers.
+- `tools/archive`: Archived one-off utilities and tracked diagnostics.
+- `submission`: Submission bundles and course deliverables.
+
 ## Local development
 
 ### Backend
 ```bash
-cd backend
+cd apps/backend
 poetry install --with dev --no-interaction
 poetry run uvicorn app.main:app --reload
 ```
 
 ### Frontend
 ```bash
-cd frontend
+cd apps/frontend
 flutter pub get
-# ensure frontend/.env exists
+# ensure apps/frontend/.env exists
 flutter run
 ```
 
 ### Full-stack integration from clean checkout
 ```bash
-bash frontend/tool/run_e2e.sh
+bash apps/frontend/tool/run_e2e.sh
 ```
 
 ## Deployment architecture (production)
 
-- Backend: Docker Compose stack (`backend/docker-compose.prod.yml`) running on EC2 provisioned by Terraform.
+- Backend: Docker Compose stack (`infra/production/docker-compose.prod.yml`) running on EC2 provisioned by Terraform.
 - Dependencies: PostgreSQL, Redis, Qdrant containers in same host stack.
 - Frontend: AWS Amplify-hosted Flutter web artifact, deployed via GitHub Actions webhooks.
 
@@ -47,7 +61,7 @@ bash frontend/tool/run_e2e.sh
 - `.github/workflows/deploy-aws-amplify.yml`
   - frontend deployment path. Production deployment only from verified `main`; staging webhook is separate.
 - `.github/workflows/deploy-aws-lambda.yml`
-  - **filename kept for course artifact compatibility**; deploys the approved **containerized backend**, not Lambda.
+  - **filename kept for course artifact compatibility only**; this workflow deploys the EC2-hosted Docker backend and does not use AWS Lambda.
 
 ## AWS setup for forked repos
 
@@ -55,18 +69,18 @@ bash frontend/tool/run_e2e.sh
    - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
    - `OPENAI_API_KEY`, `CSRF_SECRET`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`
    - `AMPLIFY_PROD_WEBHOOK_URL`, `AMPLIFY_STAGING_WEBHOOK_URL`
-2. Update `terraform/provider.tf` region if needed.
+2. Update `infra/terraform/provider.tf` region if needed.
 3. Validate infra locally:
    ```bash
-   cd terraform
+   cd infra/terraform
    terraform init
    terraform validate
    ```
-4. Deploy backend via workflow dispatch of `deploy-aws-lambda.yml` (or verified `main` trigger).
+4. Deploy backend via workflow dispatch of `deploy-aws-lambda.yml` (despite the filename, this deploys the EC2/Docker backend) or via the verified `main` trigger.
 
 ## Frontend/backend configuration expectations
 
-- Frontend API base URL is env-driven through `API_BASE_URL` in `frontend/.env`.
+- Frontend API base URL is env-driven through `API_BASE_URL` in `apps/frontend/.env`.
 - Integration tests may override backend target via `E2E_BASE_URL`.
 - Backend production logging emits JSON-structured logs.
 - Deployment readiness checks must call `/health/full`.

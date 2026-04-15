@@ -9,7 +9,7 @@ Proven solutions to recurring issues. Follow to avoid re-discovering fixes.
 ## 1. Project Architecture
 
 ```
-frontend/
+apps/frontend/
 ├── lib/
 │   ├── main.dart              # Entry (ProviderScope + GoRouter)
 │   ├── main_dev.dart          # Dev entry with mock overrides

@@ -9,20 +9,20 @@ Mutation testing introduces deliberate faults (mutations) into your codebase and
 Instead of running `mutmut` directly, use the wrapper script we created. This ensures the environment is clean, executes the tests, and formats the output into a readable markdown report.
 
 ```bash
-cd /workspaces/cs698-repo/backend
+cd /workspaces/cs698-repo/apps/backend
 ./scripts/run_mutation_tests.sh
 ```
 
 ### 2. Analyze the Results
 Once the script completes, open the generated report to review how your test suite performed:
-- **[mutation_report.md](file:///workspaces/cs698-repo/backend/mutation_report.md)**: Contains the survival statistics (Killed vs Survived) and a line-by-line breakdown of exactly which faults survived.
+- **[mutation_report.md](file:///workspaces/cs698-repo/apps/backend/mutation_report.md)**: Contains the survival statistics (Killed vs Survived) and a line-by-line breakdown of exactly which faults survived.
 
 If you encounter unexpected failures, you can check the raw diagnostic output:
-- `backend/mutmut_log.txt`
-- `backend/mutmut_error.log`
+- `apps/backend/mutmut_log.txt`
+- `apps/backend/mutmut_error.log`
 
 ### 3. Adding New Modules
-If you want to add new modules to the mutation testing suite, edit the `paths_to_mutate` array inside **`backend/pyproject.toml`**.
+If you want to add new modules to the mutation testing suite, edit the `paths_to_mutate` array inside **`apps/backend/pyproject.toml`**.
 
 **Best Practices for Target Selection:**
 - **DO Include:** Business logic (`app/rag/`, `app/core/security.py`), isolated Repositories (`user_repo.py`), and pure Services.

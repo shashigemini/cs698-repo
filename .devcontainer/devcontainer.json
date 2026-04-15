@@ -23,10 +23,10 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "/workspaces/cs698-repo/backend/.venv/bin/python",
+                "python.defaultInterpreterPath": "/workspaces/cs698-repo/apps/backend/.venv/bin/python",
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
-                    "backend/tests"
+                    "apps/backend/tests"
                 ],
                 "python.locator": "js",
                 "python.languageServer": "None"
@@ -49,7 +49,7 @@
     "runArgs": [
         "--add-host=host.docker.internal:host-gateway"
     ],
-    "postCreateCommand": "cp -n backend/.env.example backend/.env && cd backend && poetry install --with dev && cd ../frontend && flutter pub get",
+    "postCreateCommand": "cp -n apps/backend/.env.example apps/backend/.env && cd apps/backend && poetry install --with dev && cd ../frontend && flutter pub get",
     "postStartCommand": "mkdir -p /home/vscode/.gemini/antigravity && rm -f /home/vscode/.gemini/antigravity/mcp_config.json && ln -s /workspaces/${localWorkspaceFolderBasename}/.gemini/settings.json /home/vscode/.gemini/antigravity/mcp_config.json && /workspaces/${localWorkspaceFolderBasename}/.devcontainer/proxy_backend.sh",
     "remoteUser": "vscode"
 }

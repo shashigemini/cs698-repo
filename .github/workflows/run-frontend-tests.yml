@@ -3,13 +3,13 @@ name: run-frontend-tests
 on:
   pull_request:
     paths:
-      - "frontend/**"
+      - "apps/frontend/**"
       - ".github/workflows/run-frontend-tests.yml"
       - ".github/workflows/run-integration-tests.yml"
   push:
     branches: [main]
     paths:
-      - "frontend/**"
+      - "apps/frontend/**"
       - ".github/workflows/run-frontend-tests.yml"
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: apps/frontend
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2

@@ -51,7 +51,10 @@ Thumbs.db
 # Misc
 .idea/
 *.log
+logs/
+log/
 exported_conversations/
+exported_conversations_2/
 *_results.txt
 *_results.json
 *_results_utf8.json
@@ -68,12 +71,16 @@ e2e_*.json
 data/pdfs/
 .gemini/
 test_data/
-backend/data/pdfs/
+apps/backend/data/pdfs/
 
 # Mutation Testing Artifacts
-backend/mutants/
-backend/mutmut_trace.log
-backend/pytest_output.log
-backend/pyreflyout.txt
-backend/.mutmut-ignore
+apps/backend/mutants/
+apps/backend/mutmut_trace.log
+apps/backend/pytest_output.log
+apps/backend/pyreflyout.txt
+apps/backend/.mutmut-ignore
 exported_conversations_*/
+
+# Docs site local artifacts
+apps/docs-site/node_modules/
+apps/docs-site/build/

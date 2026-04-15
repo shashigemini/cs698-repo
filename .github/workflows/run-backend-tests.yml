@@ -3,13 +3,13 @@ name: run-backend-tests
 on:
   pull_request:
     paths:
-      - "backend/**"
+      - "apps/backend/**"
       - ".github/workflows/run-backend-tests.yml"
       - ".github/workflows/run-integration-tests.yml"
   push:
     branches: [main]
     paths:
-      - "backend/**"
+      - "apps/backend/**"
       - ".github/workflows/run-backend-tests.yml"
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: apps/backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
