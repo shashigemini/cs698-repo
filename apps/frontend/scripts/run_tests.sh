@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# frontend/scripts/run_tests.sh
+# apps/frontend/scripts/run_tests.sh
 # Runs P5 frontend unit tests with coverage
 
 set -e

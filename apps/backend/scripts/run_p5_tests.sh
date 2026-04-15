@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# backend/scripts/run_p5_tests.sh
+# apps/backend/scripts/run_p5_tests.sh
 # Runs P5 backend unit tests with coverage
 
 set -e

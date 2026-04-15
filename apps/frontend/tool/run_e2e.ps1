@@ -4,8 +4,8 @@
 # 1. Setup paths and timestamp
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $resultsDir = "test_results\e2e_$timestamp"
-$backendDir = "..\backend"
-$composeFile = "$backendDir\docker\docker-compose.e2e.yml"
+$backendDir = "..\..\backend"
+$composeFile = "$backendDir\docker_configs\docker-compose.e2e.yml"
 
 Write-Host "[INFO] Starting E2E Orchestrated Run: e2e_$timestamp" -ForegroundColor Cyan
 if (!(Test-Path $resultsDir)) {
