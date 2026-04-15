@@ -20,7 +20,7 @@ async def liveness_check() -> dict:
     """Lightweight liveness endpoint for process/container checks."""
     settings = get_settings()
     return {
-        "status": "alive",
+        "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": settings.app_version,
         "environment": settings.environment,
