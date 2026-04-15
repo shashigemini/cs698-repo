@@ -102,15 +102,16 @@ services:
       RATE_LIMIT_GUEST_QUERY_MAX: 3
     ports:
       - "8000:8000"
-    command: >
-      bash -c "
-        for i in {1..15}; do
-          alembic upgrade head && break
-          echo "[WARN] alembic upgrade failed, retrying in 2s ($i/15)"
-          sleep 2
-        done
-        uvicorn app.main:app --host 0.0.0.0 --port 8000
-      "
+    command:
+      - bash
+      - -c
+      - |
+          for i in {1..15}; do
+            alembic upgrade head && break
+            echo "[WARN] alembic upgrade failed, retrying in 2s ($$i/15)"
+            sleep 2
+          done
+          exec uvicorn app.main:app --host 0.0.0.0 --port 8000
     depends_on:
       db:
         condition: service_healthy
