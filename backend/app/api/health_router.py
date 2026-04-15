@@ -29,7 +29,7 @@ async def liveness_check() -> dict:
 
 async def _check_openai(settings) -> bool:
     """Check OpenAI dependency using a low-cost API call."""
-    if settings.environment == "e2e_testing" or settings.openai_api_key == "e2e-mock-key":
+    if settings.environment in {"testing", "e2e_testing"} or settings.openai_api_key in {"e2e-mock-key", "test-key"}:
         return True
     if not settings.openai_api_key:
         return False
