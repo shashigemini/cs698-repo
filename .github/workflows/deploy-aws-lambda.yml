@@ -36,7 +36,7 @@ jobs:
         run: |
           PUBLIC_IP="$(terraform output -raw public_ip)"
           ssh -o StrictHostKeyChecking=no ubuntu@"$PUBLIC_IP" \
-            "cd /home/ubuntu/cs698-repo/backend && docker compose pull && docker compose up -d --build"
+            "cd /home/ubuntu/cs698-repo/backend && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --build"
       - name: Post-deploy readiness check
         run: |
           BACKEND_URL="http://$(terraform output -raw public_ip):8000"

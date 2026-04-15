@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from openai import AsyncOpenAI
 
 from app.config import get_settings
@@ -54,7 +55,7 @@ async def readiness_check(request: Request) -> dict:
 
     all_ok = db_ok and redis_ok and qdrant_ok and openai_ok
 
-    return {
+    payload = {
         "status": "healthy" if all_ok else "degraded",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": settings.app_version,
@@ -66,3 +67,7 @@ async def readiness_check(request: Request) -> dict:
             "openai": "up" if openai_ok else "down",
         },
     }
+
+    if all_ok:
+        return payload
+    return JSONResponse(status_code=503, content=payload)

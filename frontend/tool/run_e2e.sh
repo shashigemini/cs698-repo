@@ -43,6 +43,19 @@ curl -fsS -X POST "$E2E_BASE_URL/api/test/seed" >/dev/null
 
 step "Running integration tests from target: $E2E_TARGET_PATH"
 cd "$FRONTEND_DIR"
+if [ ! -f .env ]; then
+  cat <<EOF > .env
+API_BASE_URL=http://localhost:8000
+ANDROID_PACKAGE_NAME=com.example.frontend
+ANDROID_CERT_HASH=DUMMY
+IOS_BUNDLE_ID=com.example.frontend
+IOS_TEAM_ID=DUMMY
+SECURITY_WATCHER_MAIL=security@example.org
+SSL_CERT_FINGERPRINT=DUMMY
+USE_SSL_PINNING=false
+EOF
+fi
+dart run build_runner build --delete-conflicting-outputs
 LOG_FILE="$RESULTS_DIR/frontend_tests.log"
 dart run tool/run_integration_tests.dart "$E2E_TARGET_PATH" --log-file "$LOG_FILE"
 
