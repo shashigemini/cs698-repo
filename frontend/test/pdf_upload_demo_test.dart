@@ -80,12 +80,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     
-    // Find the text fields
-    final titleField = find.widgetWithText(TextField, 'PDF Title');
-    final authorField = find.widgetWithText(TextField, 'Author');
-    final idField = find.widgetWithText(TextField, 'Logical Book ID');
-    
+    // Find demo panel text fields by InputDecoration labelText
+    final titleField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'PDF Title');
+    final authorField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'Author');
+    final idField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'Logical Book ID');
+
     expect(titleField, findsOneWidget);
+    expect(authorField, findsOneWidget);
+    expect(idField, findsOneWidget);
     
     // Enter info
     await tester.enterText(titleField, 'Test Title');
