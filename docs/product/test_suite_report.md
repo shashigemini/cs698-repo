@@ -68,7 +68,7 @@ bash apps/frontend/tool/run_e2e.sh
 `apps/frontend/tool/run_e2e.sh` supports:
 - `E2E_BASE_URL` (default `http://localhost:8000`)
 - `E2E_TARGET_PATH` (default `integration_test/e2e`)
-- `E2E_COMPOSE_FILE` (default `apps/backend/docker_configs/docker-compose.e2e.yml`)
+- `E2E_COMPOSE_FILE` (default `apps/backend/docker-compose.e2e.yml`)
 
 ## 5) Operational checks
 

@@ -38,7 +38,7 @@ services:
 
   app:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     environment:
       ENVIRONMENT: e2e_testing

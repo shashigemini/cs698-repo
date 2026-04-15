@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 FRONTEND_DIR="$ROOT_DIR/apps/frontend"
 BACKEND_DIR="$ROOT_DIR/apps/backend"
-COMPOSE_FILE="${E2E_COMPOSE_FILE:-$BACKEND_DIR/docker_configs/docker-compose.e2e.yml}"
+COMPOSE_FILE="${E2E_COMPOSE_FILE:-$BACKEND_DIR/docker-compose.e2e.yml}"
 E2E_TARGET_PATH="${E2E_TARGET_PATH:-integration_test/e2e}"
 E2E_BASE_URL="${E2E_BASE_URL:-http://localhost:8000}"
 

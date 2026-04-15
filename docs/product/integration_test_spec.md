@@ -11,7 +11,7 @@ bash apps/frontend/tool/run_e2e.sh
 ```
 
 ## Required behavior
-1. Start backend stack from `apps/backend/docker_configs/docker-compose.e2e.yml`.
+1. Start backend stack from `apps/backend/docker-compose.e2e.yml`.
 2. Wait for `/health/full` readiness.
 3. Seed deterministic E2E data via `POST /api/test/seed`.
 4. Execute frontend tests under `apps/frontend/integration_test/e2e/`.

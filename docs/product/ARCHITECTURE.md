@@ -1109,8 +1109,7 @@ cs698-repo/
 |   |-- backend/
 |   |   |-- app/
 |   |   |-- tests/
-|   |   |-- scripts/
-|   |   `-- docker_configs/
+|   |   `-- scripts/
 |   |-- frontend/
 |   |   |-- lib/
 |   |   |-- test/
