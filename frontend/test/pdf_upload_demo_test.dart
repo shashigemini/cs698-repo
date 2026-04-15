@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,13 +47,22 @@ class MockFilePicker extends FilePicker {
     bool readSequential = false,
     int? compressionQuality,
   }) async {
-    final bytes = File('/workspaces/cs698-repo/test_data/Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf').readAsBytesSync();
+    // Minimal valid-ish PDF header bytes for deterministic CI tests.
+    final bytes = <int>[
+      0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, // %PDF-1.4
+      0x0A, 0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A,
+      0x31, 0x20, 0x30, 0x20, 0x6F, 0x62, 0x6A, 0x0A, // 1 0 obj
+      0x3C, 0x3C, 0x2F, 0x54, 0x79, 0x70, 0x65, 0x2F,
+      0x43, 0x61, 0x74, 0x61, 0x6C, 0x6F, 0x67, 0x3E,
+      0x3E, 0x0A, 0x65, 0x6E, 0x64, 0x6F, 0x62, 0x6A,
+      0x0A, 0x25, 0x25, 0x45, 0x4F, 0x46,
+    ];
     return FilePickerResult([
       PlatformFile(
-        name: 'Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf',
+        name: 'sample.pdf',
         size: bytes.length,
         bytes: bytes,
-        path: '/workspaces/cs698-repo/test_data/Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf',
+        path: null,
       )
     ]);
   }
