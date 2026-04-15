@@ -374,8 +374,8 @@ Content-Type: application/json
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expires_in": 900,
   "token_type": "Bearer"
 }
@@ -504,7 +504,7 @@ Content-Type: application/json
 **Request Body** - Mobile:
 ```json
 {
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -517,8 +517,8 @@ Cookie: refresh_token=eyJ...
 **Success Response (200)**:
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expires_in": 900,
   "token_type": "Bearer"
 }
@@ -1075,7 +1075,7 @@ CREATE INDEX idx_revoked_tokens_user_id ON revoked_tokens(user_id);
 - `iat`: Issued at timestamp
 - `type`: Token type identifier
 
-**Signature**: HS256 with secret key (RS256 recommended for production)
+**Signature**: RS256 with 2048-bit RSA key pair
 
 ### Refresh Token Claims
 ```json
@@ -1140,8 +1140,7 @@ scheme = argon2.using(
 - Longer TTL for better UX, but revocable
 
 **JWT Signing**:
-- **MVP**: HS256 with 256-bit secret key
-- **Production**: RS256 with 2048-bit RSA key pair
+- **Specification**: RS256 with 2048-bit RSA key pair
 - Store signing keys in environment variables, never in code
 
 **Token Validation**:
