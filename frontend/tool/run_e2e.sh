@@ -34,6 +34,9 @@ for i in {1..45}; do
   sleep 2
   if [ "$i" -eq 45 ]; then
     echo "[ERROR] backend failed readiness check" >&2
+    echo "[INFO] Dumping compose service status and app logs for diagnosis" >&2
+    docker compose -f "$COMPOSE_FILE" ps >&2 || true
+    docker compose -f "$COMPOSE_FILE" logs app --no-color >&2 || true
     exit 1
   fi
 done
