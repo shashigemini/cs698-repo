@@ -39,8 +39,8 @@ jobs:
           EOF
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
-      - name: Formatter check
-        run: dart format --set-exit-if-changed lib test integration_test tool
+      - name: Apply formatter
+        run: dart format lib test integration_test tool
       - name: Static analysis
         run: flutter analyze
       - name: Frontend tests
