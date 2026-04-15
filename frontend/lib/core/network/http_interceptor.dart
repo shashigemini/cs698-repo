@@ -108,7 +108,8 @@ class HttpInterceptor extends Interceptor {
 
     // Map known error codes
     final code = err.response?.data is Map
-        ? (err.response?.data as Map)['error_code'] as String?
+        ? ((err.response?.data as Map)['error_code'] as String? ??
+            (err.response?.data as Map)['code'] as String?)
         : null;
     if (code != null) {
       handler.reject(

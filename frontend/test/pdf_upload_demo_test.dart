@@ -7,6 +7,8 @@ import 'package:frontend/features/settings/presentation/settings_screen.dart';
 import 'package:frontend/features/admin/domain/repositories/admin_repository.dart';
 import 'package:frontend/features/admin/data/providers/admin_repository_provider.dart';
 import 'package:frontend/core/providers/demo_mode_provider.dart';
+import 'package:frontend/core/services/local_settings_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockAdminRepository implements AdminRepository {
   @override
@@ -61,12 +63,15 @@ class MockFilePicker extends FilePicker {
 void main() {
   testWidgets('Demo panel PDF upload test', (tester) async {
     FilePicker.platform = MockFilePicker();
-    
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           isDemoModeProvider.overrideWithValue(true),
           adminRepositoryProvider.overrideWithValue(MockAdminRepository()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: const MaterialApp(
           home: Scaffold(body: SettingsScreen()),
