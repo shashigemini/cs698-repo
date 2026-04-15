@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +22,7 @@ import 'package:frontend/core/network/http_interceptor.dart';
 import 'package:frontend/main.dart'; 
 
 class E2ETestUtils {
-  static const String baseUrl = 'http://backend-app-1:8000';
+  static final String baseUrl = Platform.environment['E2E_BASE_URL'] ?? 'http://localhost:8000';
   
   static final MockStorageService _storage = MockStorageService();
   

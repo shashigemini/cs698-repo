@@ -1,13 +1,10 @@
-"""Structured logging with PII scrubbing.
+"""Structured logging with PII scrubbing."""
 
-All log output passes through scrub() to strip passwords, tokens,
-API keys, and email addresses. Uses Python stdlib logging with
-JSON-formatted output for production observability.
-"""
-
+import json
 import logging
 import re
 import sys
+from datetime import datetime, timezone
 from typing import Any
 
 _SENSITIVE_KEYS = frozenset({
@@ -36,11 +33,7 @@ _EMAIL_RE = re.compile(
 
 
 def scrub(data: Any) -> Any:
-    """Recursively redact sensitive values from dicts/lists.
-
-    Replaces values of sensitive keys with '[REDACTED]' and
-    masks email addresses in string values.
-    """
+    """Recursively redact sensitive values from dicts/lists."""
     if isinstance(data, dict):
         return {
             k: "[REDACTED]" if k.lower() in _SENSITIVE_KEYS else scrub(v)
@@ -53,29 +46,43 @@ def scrub(data: Any) -> Any:
     return data
 
 
-def setup_logging(*, debug: bool = False) -> None:
+class JsonFormatter(logging.Formatter):
+    """JSON formatter for production logs."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": scrub(record.getMessage()),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload)
+
+
+def setup_logging(*, debug: bool = False, structured: bool = False) -> None:
     """Configure root logger for the application."""
     level = logging.DEBUG if debug else logging.INFO
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-    )
-    handler.setFormatter(formatter)
+    if structured:
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(logging.Formatter(
+            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%S",
+        ))
 
     root = logging.getLogger()
     root.setLevel(level)
-    # Avoid duplicate handlers on re-init
     root.handlers = [handler]
 
-    # Quieten noisy libraries
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Get a named logger for a module."""
     return logging.getLogger(name)

@@ -113,7 +113,7 @@ services:
       qdrant:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/test/ready\")' || exit 1"]
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health/full\")' || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5

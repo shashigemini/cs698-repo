@@ -1,0 +1,43 @@
+name: deploy-aws-lambda
+
+on:
+  workflow_run:
+    workflows: ["run-backend-tests", "run-integration-tests"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy-containerized-backend:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform init
+        run: terraform init
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform apply
+        run: |
+          terraform apply -auto-approve \
+            -var "openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
+            -var "csrf_secret=${{ secrets.CSRF_SECRET }}" \
+            -var "jwt_private_key=${{ secrets.JWT_PRIVATE_KEY }}" \
+            -var "jwt_public_key=${{ secrets.JWT_PUBLIC_KEY }}"
+      - name: Deploy/update backend container stack
+        run: |
+          PUBLIC_IP="$(terraform output -raw public_ip)"
+          ssh -o StrictHostKeyChecking=no ubuntu@"$PUBLIC_IP" \
+            "cd /home/ubuntu/cs698-repo/backend && docker compose pull && docker compose up -d --build"
+      - name: Post-deploy readiness check
+        run: |
+          BACKEND_URL="http://$(terraform output -raw public_ip):8000"
+          curl -fsS "$BACKEND_URL/health/full"

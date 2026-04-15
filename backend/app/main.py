@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     and cleanly disposes them on shutdown.
     """
     settings = get_settings()
-    setup_logging(debug=settings.debug)
+    setup_logging(debug=settings.debug, structured=settings.is_production)
 
     logger.info(
         "Starting %s v%s (%s), DEBUG: %s",
@@ -194,30 +194,6 @@ def create_app() -> FastAPI:
             settings.csrf_secret, session_id
         )
         return {"csrf_token": token}
-
-    # Health check with actual dependency status
-    @app.get("/health/full")
-    async def full_health_check():
-        """Health check including dependency connectivity."""
-        from datetime import datetime, timezone
-
-        db_ok = await app.state.database.check_health()
-        redis_ok = await app.state.redis.check_health()
-
-        status = "healthy" if (db_ok and redis_ok) else "degraded"
-
-        return {
-            "status": status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "version": settings.app_version,
-            "environment": settings.environment,
-            "services": {
-                "database": "up" if db_ok else "down",
-                "redis": "up" if redis_ok else "down",
-                "qdrant": "unknown",
-                "openai": "unknown",
-            },
-        }
 
     return app
 

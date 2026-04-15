@@ -1,97 +1,81 @@
 # Spiritual Q&A Platform
 
-**Course**: CS 698 - Software Engineering
-**Organization**: Non-Profit Spiritual Organization
-**Last Updated**: February 15, 2026
+**Course**: CS 698 - Software Engineering  
+**Architecture**: Flutter frontend + containerized FastAPI backend on AWS EC2 + Amplify hosting.
 
----
+## Local development
 
-## 🎯 Project Overview
-
-A spiritual/philosophical Q&A application that provides answers based strictly on the organization's proprietary texts using Retrieval-Augmented Generation (RAG).
-
-## 📂 Repository Structure
-
-```text
-/
-├── backend/                # FastAPI (Python) - RAG & Auth Services
-├── frontend/               # Flutter (Dart) - Cross-platform Client
-├── docs/                   # Documentation
-│   ├── specs/              # Detailed Developer Specifications
-│   ├── ARCHITECTURE.md     # System Design
-│   └── openapi.yaml        # API Contract
-├── prototypes/             # Reference Implementations
-│   └── figma_generated_ui/ # Original React/Vite UI Prototype
-└── scripts/                # Utility Scripts
-```
-
-## 🚀 Getting Started
-
-### Backend (Python)
-
+### Backend
 ```bash
 cd backend
-poetry install
+poetry install --with dev --no-interaction
 poetry run uvicorn app.main:app --reload
 ```
 
-### Frontend (Flutter)
-
+### Frontend
 ```bash
 cd frontend
 flutter pub get
+# ensure frontend/.env exists
 flutter run
 ```
 
-## 🧪 Testing
-
-To easily reproduce and run the tests, developers can use the provided dev container, as it comes pre-installed with all necessary frameworks and testing libraries.
-
-### Backend (Python)
-
-**Framework & Libraries:**
-- **pytest:** The primary testing framework.
-- **pytest-cov:** For measuring code coverage.
-- **pytest-asyncio:** For testing asynchronous code.
-- **httpx:** Used as an async HTTP client for integration and endpoint testing.
-- **mutmut:** Used for mutation testing.
-
-**How to Run Tests:**
-To manually run the backend tests, execute the following script:
+### Full-stack integration from clean checkout
 ```bash
-/workspaces/cs698-repo/backend/scripts/run_p5_tests.sh
+bash frontend/tool/run_e2e.sh
 ```
 
-### Frontend (Flutter)
+## Deployment architecture (production)
 
-**Framework & Libraries:**
-- **flutter_test:** Flutter's built-in testing framework.
-- **mocktail:** Library used for creating mock objects to ensure isolated testing.
-- **integration_test:** SDK package for end-to-end device testing.
+- Backend: Docker Compose stack (`backend/docker-compose.prod.yml`) running on EC2 provisioned by Terraform.
+- Dependencies: PostgreSQL, Redis, Qdrant containers in same host stack.
+- Frontend: AWS Amplify-hosted Flutter web artifact, deployed via GitHub Actions webhooks.
 
-**How to Run Tests:**
-To manually run the frontend unit tests, execute the following script:
-```bash
-/workspaces/cs698-repo/frontend/scripts/run_tests.sh
-```
+## Health/readiness model
 
-### Run All Tests
+- `GET /health`: lightweight liveness only.
+- `GET /health/full`: readiness for PostgreSQL + Redis + Qdrant + OpenAI path. Used for deployment validation and container health checks.
 
-To run both the frontend and backend tests at once, execute the master script:
-```bash
-/workspaces/cs698-repo/scripts/run_all_p5_tests.sh
-```
+## CI/CD workflows
 
-## 📚 Documentation
+- `.github/workflows/run-backend-tests.yml`
+  - canonical backend verification gate (ruff + format + full pytest suite).
+- `.github/workflows/run-frontend-tests.yml`
+  - canonical frontend verification gate (format + analyze + tests + production web build).
+- `.github/workflows/run-integration-tests.yml`
+  - local full-stack integration path for PRs and optional cloud-targeted manual execution.
+- `.github/workflows/deploy-aws-amplify.yml`
+  - frontend deployment path. Production deployment only from verified `main`; staging webhook is separate.
+- `.github/workflows/deploy-aws-lambda.yml`
+  - **filename kept for course artifact compatibility**; deploys the approved **containerized backend**, not Lambda.
 
-- [Architecture](./docs/ARCHITECTURE.md)
-- [API Specification](./docs/openapi.yaml)
-- [RAG Spec](./docs/specs/Issue%20#1%20Devspec)
-- [Auth Spec](./docs/specs/Issue%20#2%20Devspec)
-- [Flutter Spec](./docs/specs/Issue%20#3%20Devspec)
-- [Security Roadmap](./docs/SECURITY_ROADMAP.md)
+## AWS setup for forked repos
 
----
-**Built according to POUR standards**
+1. Create repository secrets:
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+   - `OPENAI_API_KEY`, `CSRF_SECRET`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`
+   - `AMPLIFY_PROD_WEBHOOK_URL`, `AMPLIFY_STAGING_WEBHOOK_URL`
+2. Update `terraform/provider.tf` region if needed.
+3. Validate infra locally:
+   ```bash
+   cd terraform
+   terraform init
+   terraform validate
+   ```
+4. Deploy backend via workflow dispatch of `deploy-aws-lambda.yml` (or verified `main` trigger).
 
-**Built with ❤️ for spiritual seekers worldwide**
+## Frontend/backend configuration expectations
+
+- Frontend API base URL is env-driven through `API_BASE_URL` in `frontend/.env`.
+- Integration tests may override backend target via `E2E_BASE_URL`.
+- Backend production logging emits JSON-structured logs.
+- Deployment readiness checks must call `/health/full`.
+
+## Submission artifacts
+
+This repository includes required workflow filenames for submission:
+- `run-backend-tests.yml`
+- `run-frontend-tests.yml`
+- `run-integration-tests.yml`
+- `deploy-aws-amplify.yml`
+- `deploy-aws-lambda.yml`
