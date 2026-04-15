@@ -119,10 +119,10 @@ abstract final class AppStrings {
   // ── Demo Admin Panel ────────────────────────────────────────
   static const demoAdminTitle = 'Demo Admin Panel';
   static const demoUploadPdf = 'Upload PDF Document';
-  static const demoPdfTitle = 'Document Title';
-  static const demoPdfAuthor = 'Author (Optional)';
-  static const demoPdfLogicalId = 'Logical Book ID (e.g. gita_01)';
-  static const demoUploadButton = 'Upload and Ingest';
+  static const demoPdfTitle = 'PDF Title';
+  static const demoPdfAuthor = 'Author';
+  static const demoPdfLogicalId = 'Logical Book ID';
+  static const demoUploadButton = 'Upload Document';
   static const demoOpenAiKey = 'OpenAI API Key';
   static const demoSaveKey = 'Save OpenAI Key';
   static const demoConfigUpdated = 'Configuration updated successfully';

@@ -1,35 +1,50 @@
-name: Backend Tests
+name: run-backend-tests
 
-on: [push, pull_request]
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/run-backend-tests.yml"
+      - ".github/workflows/run-integration-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/run-backend-tests.yml"
 
 jobs:
-  test:
+  backend-verification:
     runs-on: ubuntu-latest
-    
     defaults:
       run:
-        working-directory: ./backend
-
+        working-directory: backend
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-        
-    - name: Install Poetry
-      run: curl -sSL https://install.python-poetry.org | python3 -
-      
-    - name: Install dependencies
-      run: |
-        export PATH="$HOME/.local/bin:$PATH"
-        poetry install --no-root
-        
-    - name: Run specific backend tests
-      run: |
-        export PATH="$HOME/.local/bin:$PATH"
-        poetry run pytest tests/test_security.py tests/test_auth_service.py -v \
-          --cov=app.core.security \
-          --cov=app.services.auth_service \
-          --cov-report=term-missing
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        run: poetry install --with dev --no-interaction
+      - name: Lint (block only syntax/runtime-critical issues)
+        run: poetry run ruff check . --select E9,F63,F7,F82
+      - name: Start dependency services
+        run: docker compose -f docker_configs/docker-compose.test.yml up -d postgres redis qdrant
+      - name: Wait for services
+        run: |
+          until docker compose -f docker_configs/docker-compose.test.yml exec -T postgres pg_isready -U postgres; do sleep 2; done
+          until docker compose -f docker_configs/docker-compose.test.yml exec -T redis redis-cli ping; do sleep 2; done
+          until curl -sf http://localhost:6333/healthz; do sleep 2; done
+      - name: Run backend test suite
+        env:
+          ENVIRONMENT: testing
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/spiritual_qa
+          REDIS_URL: redis://localhost:6379/15
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          OPENAI_API_KEY: test-key
+        run: poetry run pytest --cov=app --cov-report=term-missing --cov-report=xml -v
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker_configs/docker-compose.test.yml down -v

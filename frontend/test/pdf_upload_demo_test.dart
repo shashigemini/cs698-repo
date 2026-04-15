@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +7,8 @@ import 'package:frontend/features/settings/presentation/settings_screen.dart';
 import 'package:frontend/features/admin/domain/repositories/admin_repository.dart';
 import 'package:frontend/features/admin/data/providers/admin_repository_provider.dart';
 import 'package:frontend/core/providers/demo_mode_provider.dart';
+import 'package:frontend/core/services/local_settings_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockAdminRepository implements AdminRepository {
   @override
@@ -46,13 +48,22 @@ class MockFilePicker extends FilePicker {
     bool readSequential = false,
     int? compressionQuality,
   }) async {
-    final bytes = File('/workspaces/cs698-repo/test_data/Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf').readAsBytesSync();
+    // Minimal valid-ish PDF header bytes for deterministic CI tests.
+    final bytes = Uint8List.fromList(<int>[
+      0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, // %PDF-1.4
+      0x0A, 0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A,
+      0x31, 0x20, 0x30, 0x20, 0x6F, 0x62, 0x6A, 0x0A, // 1 0 obj
+      0x3C, 0x3C, 0x2F, 0x54, 0x79, 0x70, 0x65, 0x2F,
+      0x43, 0x61, 0x74, 0x61, 0x6C, 0x6F, 0x67, 0x3E,
+      0x3E, 0x0A, 0x65, 0x6E, 0x64, 0x6F, 0x62, 0x6A,
+      0x0A, 0x25, 0x25, 0x45, 0x4F, 0x46,
+    ]);
     return FilePickerResult([
       PlatformFile(
-        name: 'Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf',
+        name: 'sample.pdf',
         size: bytes.length,
         bytes: bytes,
-        path: '/workspaces/cs698-repo/test_data/Meher Baba on Be True to Your Duty and Five Other Messages - Read Book.pdf',
+        path: null,
       )
     ]);
   }
@@ -61,12 +72,15 @@ class MockFilePicker extends FilePicker {
 void main() {
   testWidgets('Demo panel PDF upload test', (tester) async {
     FilePicker.platform = MockFilePicker();
-    
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           isDemoModeProvider.overrideWithValue(true),
           adminRepositoryProvider.overrideWithValue(MockAdminRepository()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: const MaterialApp(
           home: Scaffold(body: SettingsScreen()),
@@ -75,12 +89,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     
-    // Find the text fields
-    final titleField = find.widgetWithText(TextField, 'PDF Title');
-    final authorField = find.widgetWithText(TextField, 'Author');
-    final idField = find.widgetWithText(TextField, 'Logical Book ID');
-    
+    // Find demo panel text fields by InputDecoration labelText
+    final titleField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'PDF Title');
+    final authorField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'Author');
+    final idField = find.byWidgetPredicate((widget) =>
+        widget is TextField && widget.decoration?.labelText == 'Logical Book ID');
+
     expect(titleField, findsOneWidget);
+    expect(authorField, findsOneWidget);
+    expect(idField, findsOneWidget);
     
     // Enter info
     await tester.enterText(titleField, 'Test Title');

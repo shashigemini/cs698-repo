@@ -3,7 +3,6 @@ import 'package:integration_test/integration_test.dart';
 
 import '../robot/auth_robot.dart';
 import '../robot/home_robot.dart';
-import 'package:lucide_flutter/lucide_flutter.dart' as import_lucide;
 import 'utils/e2e_test_utils.dart';
 
 void main() {
@@ -106,19 +105,22 @@ void main() {
       // Delete the conversation from the drawer
       await home.openDrawer();
       await tester.pumpAndSettle(); // Wait for drawer animation and list loading
-      
-      // Tap delete icon next to the conversation
-      final deleteIcon = find.byIcon(import_lucide.LucideIcons.trash2).last;
-      if (deleteIcon.evaluate().isNotEmpty) {
-        await tester.tap(deleteIcon);
-        await tester.pump(const Duration(milliseconds: 500));
-        // confirming delete dialog usually appears
-        await tester.tap(find.text('Delete'));
-        await tester.pumpAndSettle();
 
-        // Verify it disappeared
-        expect(find.textContaining('To be deleted'), findsNothing);
-      }
+      // Open settings where conversation delete actions are rendered.
+      await home.tapSettings();
+      await tester.pumpAndSettle();
+
+      // Verify seeded conversation is listed first.
+      expect(find.textContaining('To be deleted'), findsOneWidget);
+
+      // Tap the per-conversation delete action and validate removal.
+      final deleteAction = find.byTooltip('Delete').first;
+      expect(deleteAction, findsOneWidget);
+      await tester.tap(deleteAction);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conversation deleted'), findsOneWidget);
+      expect(find.textContaining('To be deleted'), findsNothing);
     });
   });
 }

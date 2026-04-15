@@ -20,6 +20,16 @@ class StartupScreen extends StatefulWidget {
 
 class _StartupScreenState extends State<StartupScreen> {
   @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        context.go('/home');
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GradientScaffold(
       body: Center(
