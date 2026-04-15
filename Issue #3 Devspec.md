@@ -1084,8 +1084,8 @@ class ChatState {
 **Tokens** (Secure Storage):
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
   "access_expires_at": "2026-02-15T22:15:00Z",
   "refresh_expires_at": "2026-02-22T22:00:00Z"
 }

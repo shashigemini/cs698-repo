@@ -423,7 +423,7 @@ classDiagram
 - **Access Token**: 
   - TTL: 15 minutes
   - Contains: user_id, role, exp
-  - Signing: HS256 or RS256
+  - Signing: RS256
 - **Refresh Token**:
   - TTL: 7 days
   - Rotation: Issue new refresh token on each refresh
