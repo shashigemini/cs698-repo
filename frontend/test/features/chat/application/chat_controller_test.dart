@@ -4,7 +4,6 @@ import 'package:frontend/core/services/guest_service.dart';
 import 'package:frontend/features/auth/domain/repositories/auth_repository.dart';
 import 'package:frontend/features/auth/data/providers/auth_provider.dart';
 import 'package:frontend/features/chat/application/chat_controller.dart';
-import 'package:frontend/features/chat/application/chat_state.dart';
 import 'package:frontend/features/chat/data/providers/chat_repository_provider.dart';
 import 'package:frontend/features/chat/domain/models/answer_result.dart';
 import 'package:frontend/features/chat/domain/models/conversation.dart';
@@ -62,7 +61,7 @@ void main() {
     await controller.initialized;
     
     // Ensure state synchronizes
-    await Future.delayed(const Duration(milliseconds: 50));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
     
     return controller;
   }
@@ -169,7 +168,7 @@ void main() {
       final controller = await createAndInit(guestQueries: 0);
       
       if (container.read(chatControllerProvider).guestQueriesRemaining != 0) {
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
       }
 
       await controller.sendQuery('q1', guestSessionId: 'g1');
@@ -187,7 +186,7 @@ void main() {
           .thenAnswer((_) => completer.future);
 
       final f = controller.sendQuery('hi');
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(container.read(chatControllerProvider).messages.length, 1);
       expect(container.read(chatControllerProvider).messages[0].sender, 'user');
       expect(container.read(chatControllerProvider).isLoading, isTrue);
