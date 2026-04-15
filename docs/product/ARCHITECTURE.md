@@ -567,7 +567,7 @@ All API errors return:
 | **Vector DB** | Qdrant | Semantic search |
 | **LLM** | OpenAI gpt-4.1-mini | Answer generation |
 | **RDBMS** | PostgreSQL 14+ | Structured data |
-| **Rate Limiting** | In-memory (MVP) → Redis | Guest rate limits |
+| **Rate Limiting** | In-memory (MVP) â†’ Redis | Guest rate limits |
 | **HTTP Client** | httpx | OpenAI API calls |
 | **PDF Processing** | PyPDF2 or pdfplumber | PDF text extraction |
 
@@ -1103,38 +1103,34 @@ flowchart TB
 ## 10. Development Workflow
 
 ### 10.1 Repository Structure
-```
+```text
 cs698-repo/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth.py
-│   │   │   └── chat.py
-│   │   ├── services/
-│   │   │   ├── auth_service.py
-│   │   │   ├── rag_service.py
-│   │   │   └── rate_limiter.py
-│   │   ├── models/
-│   │   │   └── schemas.py
-│   │   └── main.py
-│   ├── tests/
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── lib/
-│   │   ├── screens/
-│   │   ├── controllers/
-│   │   ├── repositories/
-│   │   ├── services/
-│   │   └── main.dart
-│   ├── test/
-│   └── pubspec.yaml
-├── docs/
-│   └── pdfs/
-├── .github/
-│   └── workflows/
-├── ARCHITECTURE.md (this file)
-└── README.md
+|-- apps/
+|   |-- backend/
+|   |   |-- app/
+|   |   |-- tests/
+|   |   |-- scripts/
+|   |   `-- docker_configs/
+|   |-- frontend/
+|   |   |-- lib/
+|   |   |-- test/
+|   |   |-- integration_test/
+|   |   `-- tool/
+|   `-- docs-site/
+|-- infra/
+|   |-- terraform/
+|   `-- production/
+|-- docs/
+|   |-- product/
+|   `-- course/
+|-- tools/
+|   |-- dev/
+|   |-- ops/
+|   `-- archive/
+|-- submission/
+|-- .github/
+|-- .devcontainer/
+`-- README.md
 ```
 
 ### 10.2 Testing Strategy
