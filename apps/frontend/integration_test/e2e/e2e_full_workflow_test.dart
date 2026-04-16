@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -54,8 +55,8 @@ void main() {
       // 5. Verify conversation history persists
       await home.openDrawer();
       expect(find.textContaining('guide my path'), findsOneWidget);
-      // close drawer
-      await tester.tapAt(const Offset(10, 10)); // tap outside to close drawer
+      // close drawer by tapping on the right side of the screen (outside drawer)
+      await tester.tapAt(Offset(tester.getSize(find.byType(Scaffold).first).width - 10, 100));
       await tester.pumpAndSettle();
 
       // 6. Delete Account
