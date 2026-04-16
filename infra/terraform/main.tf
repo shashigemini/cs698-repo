@@ -18,6 +18,16 @@ variable "jwt_public_key" {
   sensitive = true
 }
 
+variable "ec2_key_name" {
+  description = "Existing EC2 key pair name for SSH access"
+  type        = string
+}
+
+variable "repo_clone_url" {
+  description = "Git repository URL cloned during EC2 bootstrap"
+  type        = string
+}
+
 # --- VPC ---
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -68,6 +78,13 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -87,9 +104,10 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "app_server" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.medium"
-  subnet_id     = aws_subnet.public.id
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.medium"
+  subnet_id              = aws_subnet.public.id
+  key_name               = var.ec2_key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = templatefile("${path.module}/scripts/install_docker.sh", {
@@ -97,6 +115,7 @@ resource "aws_instance" "app_server" {
     CSRF_SECRET     = var.csrf_secret
     JWT_PRIVATE_KEY = var.jwt_private_key
     JWT_PUBLIC_KEY  = var.jwt_public_key
+    REPO_CLONE_URL  = var.repo_clone_url
   })
 
   tags = { Name = "cs698-app-server" }
