@@ -68,6 +68,7 @@ bash apps/frontend/tool/run_e2e.sh
 1. Create repository secrets:
    - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
    - `OPENAI_API_KEY`, `CSRF_SECRET`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`
+   - `EC2_KEY_NAME`, `EC2_SSH_PRIVATE_KEY`
    - `AMPLIFY_PROD_WEBHOOK_URL`, `AMPLIFY_STAGING_WEBHOOK_URL`
 2. Update `infra/terraform/provider.tf` region if needed.
 3. Validate infra locally:

@@ -12,10 +12,10 @@ systemctl start docker
 systemctl enable docker
 
 cd /home/ubuntu
-git clone https://github.com/shashigemini/cs698-repo.git
+git clone ${REPO_CLONE_URL} cs698-repo
 cd cs698-repo/apps/backend
 
-cat <<EOF > .env
+cat <<EOF_ENV > .env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=spiritual_qa
@@ -24,7 +24,7 @@ CSRF_SECRET=${CSRF_SECRET}
 JWT_PRIVATE_KEY='${JWT_PRIVATE_KEY}'
 JWT_PUBLIC_KEY='${JWT_PUBLIC_KEY}'
 ENVIRONMENT=production
-EOF
+EOF_ENV
 
 cd /home/ubuntu/cs698-repo
 docker compose -f infra/production/docker-compose.prod.yml up -d --build
