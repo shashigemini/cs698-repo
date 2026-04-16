@@ -1,0 +1,1182 @@
+openapi: 3.1.0
+info:
+  title: Spiritual Q&A Backend
+  version: 0.1.0
+paths:
+  /api/auth/register:
+    post:
+      tags:
+      - Authentication
+      summary: Register
+      description: Register a new user with E2EE key material.
+      operationId: register_api_auth_register_post
+      parameters:
+      - name: use_cookies
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Return tokens in HttpOnly cookies
+          default: false
+          title: Use Cookies
+        description: Return tokens in HttpOnly cookies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/login:
+    post:
+      tags:
+      - Authentication
+      summary: Login Challenge
+      description: 'Step 1: Get user''s salt for client-side key derivation.'
+      operationId: login_challenge_api_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginChallengeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginChallengeResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/login/verify:
+    post:
+      tags:
+      - Authentication
+      summary: Login Verify
+      description: 'Step 2: Verify client auth token and return JWT pair + wrapped
+        AK.'
+      operationId: login_verify_api_auth_login_verify_post
+      parameters:
+      - name: use_cookies
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Return tokens in HttpOnly cookies
+          default: false
+          title: Use Cookies
+        description: Return tokens in HttpOnly cookies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginVerifyRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginVerifyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/refresh:
+    post:
+      tags:
+      - Authentication
+      summary: Refresh Tokens
+      description: Rotate refresh token and issue new JWT pair.
+      operationId: refresh_tokens_api_auth_refresh_post
+      parameters:
+      - name: use_cookies
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Return tokens in HttpOnly cookies
+          default: false
+          title: Use Cookies
+        description: Return tokens in HttpOnly cookies
+      - name: refresh_token
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refresh Token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/RefreshRequest'
+              - type: 'null'
+              title: Body
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/logout:
+    post:
+      tags:
+      - Authentication
+      summary: Logout
+      description: Revoke the current refresh token.
+      operationId: logout_api_auth_logout_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__common_schemas__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/account:
+    delete:
+      tags:
+      - Authentication
+      summary: Delete Account
+      description: Permanently delete user account and all data.
+      operationId: delete_account_api_auth_account_delete
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__common_schemas__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/change-password:
+    post:
+      tags:
+      - Authentication
+      summary: Change Password
+      description: Update auth credentials after client-side password change.
+      operationId: change_password_api_auth_change_password_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__common_schemas__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/recover:
+    post:
+      tags:
+      - Authentication
+      summary: Recover Account
+      description: Recover account with new credentials (after mnemonic verification).
+      operationId: recover_account_api_auth_recover_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverAccountRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoverAccountResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/chat/query:
+    post:
+      tags:
+      - Chat
+      summary: Chat Query
+      description: 'Send a query to the RAG pipeline.
+
+
+        Supports both guest (rate-limited, no persistence) and
+
+        authenticated (with conversation history) modes.'
+      operationId: chat_query_api_chat_query_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/chat/conversations:
+    get:
+      tags:
+      - Chat
+      summary: List Conversations
+      description: List all conversations for the authenticated user.
+      operationId: list_conversations_api_chat_conversations_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationSummary'
+                title: Response List Conversations Api Chat Conversations Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/chat/conversations/{conversation_id}:
+    get:
+      tags:
+      - Chat
+      summary: Load Conversation
+      description: Load all messages in a conversation.
+      operationId: load_conversation_api_chat_conversations__conversation_id__get
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Conversation Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/app__schemas__chat_schemas__MessageResponse'
+                title: Response Load Conversation Api Chat Conversations  Conversation
+                  Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Chat
+      summary: Delete Conversation
+      description: Delete a conversation and all its messages.
+      operationId: delete_conversation_api_chat_conversations__conversation_id__delete
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Conversation Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__common_schemas__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/chat/conversations/{conversation_id}/export:
+    post:
+      tags:
+      - Chat
+      summary: Export Conversation
+      description: Export a conversation as formatted Markdown.
+      operationId: export_conversation_api_chat_conversations__conversation_id__export_post
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Conversation Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/documents/ingest:
+    post:
+      tags:
+      - Admin
+      summary: Ingest Document
+      description: 'Upload and ingest a PDF document.
+
+
+        The file is validated (magic bytes + extension), stored with
+
+        a UUID filename, and queued for chunking + embedding.'
+      operationId: ingest_document_api_admin_documents_ingest_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_ingest_document_api_admin_documents_ingest_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/documents:
+    get:
+      tags:
+      - Admin
+      summary: List Documents
+      description: List all ingested documents and their status.
+      operationId: list_documents_api_admin_documents_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/documents/{document_id}:
+    delete:
+      tags:
+      - Admin
+      summary: Delete Document
+      description: Delete a document and its stored file.
+      operationId: delete_document_api_admin_documents__document_id__delete
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Document Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/config:
+    put:
+      tags:
+      - Admin
+      summary: Update Config
+      description: Update global application configuration (demo mode only).
+      operationId: update_config_api_admin_config_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Admin
+      summary: Get Config
+      description: Get current configuration (masked for security).
+      operationId: get_config_api_admin_config_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health Check
+      description: 'Return application health and dependency status.
+
+
+        Note: Database and Redis checks are injected at the main
+
+        app level to avoid circular imports. This base handler
+
+        returns the app-level health; the full check is wired
+
+        in main.py.'
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/csrf:
+    get:
+      summary: Get Csrf Token
+      description: Get a CSRF token bound to the current session.
+      operationId: get_csrf_token_api_csrf_get
+      parameters:
+      - name: authorization
+        in: query
+        required: false
+        schema:
+          type: string
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health/full:
+    get:
+      summary: Full Health Check
+      description: Health check including dependency connectivity.
+      operationId: full_health_check_health_full_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    AuthResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        access_expires_at:
+          type: string
+          format: date-time
+          title: Access Expires At
+      type: object
+      required:
+      - user_id
+      - access_token
+      - refresh_token
+      - access_expires_at
+      title: AuthResponse
+      description: Response for registration (no wrapped AK return needed).
+    Body_ingest_document_api_admin_documents_ingest_post:
+      properties:
+        file:
+          type: string
+          format: binary
+          title: File
+        title:
+          type: string
+          title: Title
+        logical_book_id:
+          type: string
+          title: Logical Book Id
+        author:
+          type: string
+          title: Author
+        edition:
+          type: string
+          title: Edition
+      type: object
+      required:
+      - file
+      - title
+      - logical_book_id
+      title: Body_ingest_document_api_admin_documents_ingest_post
+    ChangePasswordRequest:
+      properties:
+        new_auth_token:
+          type: string
+          minLength: 1
+          title: New Auth Token
+        new_wrapped_account_key:
+          type: string
+          minLength: 1
+          title: New Wrapped Account Key
+      type: object
+      required:
+      - new_auth_token
+      - new_wrapped_account_key
+      title: ChangePasswordRequest
+      description: 'E2EE password change: client re-wraps AK with new LMK.'
+    CitationResponse:
+      properties:
+        document_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Document Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        page:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page
+        paragraph_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Paragraph Id
+        relevance_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Relevance Score
+        passage_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Passage Text
+      type: object
+      title: CitationResponse
+      description: Citation referencing a source document passage.
+    ConfigUpdateRequest:
+      properties:
+        openai_api_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Openai Api Key
+        openai_model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Openai Model
+        openai_temperature:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Openai Temperature
+      type: object
+      title: ConfigUpdateRequest
+      description: Request schema for updating app configuration.
+    ConversationSummary:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        message_count:
+          type: integer
+          title: Message Count
+          default: 0
+        last_message_preview:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Message Preview
+      type: object
+      required:
+      - id
+      - created_at
+      - updated_at
+      title: ConversationSummary
+      description: Lightweight conversation metadata for listing.
+    ExportResponse:
+      properties:
+        export_data:
+          type: string
+          title: Export Data
+      type: object
+      required:
+      - export_data
+      title: ExportResponse
+      description: Exported conversation data.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    LoginChallengeRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Email
+      type: object
+      required:
+      - email
+      title: LoginChallengeRequest
+      description: 'Step 1 of E2EE login: client sends email to get salt.'
+    LoginChallengeResponse:
+      properties:
+        salt:
+          type: string
+          title: Salt
+          description: Base64-encoded Argon2id salt
+        recovery_wrapped_ak:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recovery Wrapped Ak
+          description: Base64-encoded RecoveryKey-wrapped AccountKey (used for recovery)
+      type: object
+      required:
+      - salt
+      title: LoginChallengeResponse
+      description: Server returns the user's salt for key derivation.
+    LoginVerifyRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Email
+        client_auth_token:
+          type: string
+          minLength: 1
+          title: Client Auth Token
+          description: Base64-encoded HKDF-derived auth token from LMK
+      type: object
+      required:
+      - email
+      - client_auth_token
+      title: LoginVerifyRequest
+      description: 'Step 2: client sends derived auth token for verification.'
+    LoginVerifyResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        access_expires_at:
+          type: string
+          format: date-time
+          title: Access Expires At
+          description: ISO 8601 datetime when the access token expires
+        wrapped_account_key:
+          type: string
+          title: Wrapped Account Key
+          description: Client uses this to unwrap AK with LMK
+      type: object
+      required:
+      - user_id
+      - access_token
+      - refresh_token
+      - access_expires_at
+      - wrapped_account_key
+      title: LoginVerifyResponse
+      description: Successful login returns JWT pair + wrapped AK.
+    QueryMetadata:
+      properties:
+        retrieval_time_ms:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Retrieval Time Ms
+        llm_time_ms:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Llm Time Ms
+        total_chunks_retrieved:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total Chunks Retrieved
+      type: object
+      title: QueryMetadata
+      description: Performance/diagnostic metadata from the RAG pipeline.
+    QueryRequest:
+      properties:
+        query:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Query
+        conversation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Conversation Id
+          description: UUID of existing conversation (auth users)
+        guest_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Guest Session Id
+          description: UUID for guest rate-limit tracking
+      type: object
+      required:
+      - query
+      title: QueryRequest
+      description: Chat query request. Supports guest and authenticated modes.
+    QueryResponse:
+      properties:
+        answer:
+          type: string
+          title: Answer
+        conversation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Conversation Id
+        citations:
+          items:
+            $ref: '#/components/schemas/CitationResponse'
+          type: array
+          title: Citations
+        metadata:
+          anyOf:
+          - $ref: '#/components/schemas/QueryMetadata'
+          - type: 'null'
+        guest_queries_remaining:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Guest Queries Remaining
+      type: object
+      required:
+      - answer
+      title: QueryResponse
+      description: Chat query response with answer, citations, and metadata.
+    RecoverAccountRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Email
+        new_auth_token:
+          type: string
+          minLength: 1
+          title: New Auth Token
+        new_wrapped_account_key:
+          type: string
+          minLength: 1
+          title: New Wrapped Account Key
+      type: object
+      required:
+      - email
+      - new_auth_token
+      - new_wrapped_account_key
+      title: RecoverAccountRequest
+      description: 'E2EE account recovery: client unwraps AK with RK, re-wraps with
+        new LMK.'
+    RecoverAccountResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        access_expires_at:
+          type: string
+          format: date-time
+          title: Access Expires At
+        wrapped_account_key:
+          type: string
+          title: Wrapped Account Key
+      type: object
+      required:
+      - user_id
+      - access_token
+      - refresh_token
+      - access_expires_at
+      - wrapped_account_key
+      title: RecoverAccountResponse
+      description: Successful recovery auto-logs in and returns new tokens.
+    RefreshRequest:
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+          title: Refresh Token
+      type: object
+      required:
+      - refresh_token
+      title: RefreshRequest
+      description: Refresh token request (mobile sends in body, web via cookie).
+    RefreshResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        access_expires_at:
+          type: string
+          format: date-time
+          title: Access Expires At
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      - access_expires_at
+      title: RefreshResponse
+      description: New token pair after refresh.
+    RegisterRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 255
+          format: email
+          title: Email
+        client_auth_token:
+          type: string
+          minLength: 1
+          title: Client Auth Token
+          description: Base64-encoded HKDF-derived auth token from LMK
+        salt:
+          type: string
+          minLength: 1
+          title: Salt
+          description: Base64-encoded Argon2id salt (16 bytes)
+        wrapped_account_key:
+          type: string
+          minLength: 1
+          title: Wrapped Account Key
+          description: Base64-encoded AES-GCM wrapped AccountKey
+        recovery_wrapped_ak:
+          type: string
+          minLength: 1
+          title: Recovery Wrapped Ak
+          description: Base64-encoded RecoveryKey-wrapped AccountKey
+      type: object
+      required:
+      - email
+      - client_auth_token
+      - salt
+      - wrapped_account_key
+      - recovery_wrapped_ak
+      title: RegisterRequest
+      description: 'E2EE registration: client sends derived auth token + wrapped keys.'
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    app__schemas__chat_schemas__MessageResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        sender:
+          type: string
+          title: Sender
+        content:
+          type: string
+          title: Content
+        citations:
+          items:
+            $ref: '#/components/schemas/CitationResponse'
+          type: array
+          title: Citations
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+      type: object
+      required:
+      - id
+      - sender
+      - content
+      - timestamp
+      title: MessageResponse
+      description: A single message in a conversation.
+    app__schemas__common_schemas__MessageResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: MessageResponse
+      description: Simple message response for operations like logout.
