@@ -1,0 +1,25 @@
+version: 1
+applications:
+  - appRoot: apps/frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            # Install Flutter SDK
+            - git clone https://github.com/flutter/flutter.git -b stable --depth 1
+            - export PATH="$PATH:$(pwd)/flutter/bin"
+            - flutter config --no-analytics
+            - flutter doctor -v
+            - flutter pub get
+        build:
+          commands:
+            - flutter build web --release
+      artifacts:
+        # Relative to repository root
+        baseDirectory: apps/frontend/build/web
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - apps/frontend/.pub-cache/**/*
+          - flutter/**/*

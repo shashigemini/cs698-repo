@@ -60,8 +60,8 @@ bash apps/frontend/tool/run_e2e.sh
   - local full-stack integration path for PRs and optional cloud-targeted manual execution.
 - `.github/workflows/deploy-aws-amplify.yml`
   - frontend deployment path. Production deployment only from verified `main`; staging webhook is separate.
-- `.github/workflows/deploy-aws-lambda.yml`
-  - **filename kept for course artifact compatibility only**; this workflow deploys the EC2-hosted Docker backend and does not use AWS Lambda.
+- `.github/workflows/deploy-aws-ec2.yml`
+  - **filename kept as deploy-aws-ec2.yml despite course artifacts mentioning lambda**; this workflow deploys the EC2-hosted Docker backend and does not use AWS Lambda.
 
 ## AWS setup for forked repos
 
@@ -76,7 +76,7 @@ bash apps/frontend/tool/run_e2e.sh
    terraform init
    terraform validate
    ```
-4. Deploy backend via workflow dispatch of `deploy-aws-lambda.yml` (despite the filename, this deploys the EC2/Docker backend) or via the verified `main` trigger.
+4. Deploy backend via workflow dispatch of `deploy-aws-ec2.yml` (despite the previous lambda naming, this deploys the EC2/Docker backend) or via the verified `main` trigger.
 
 ## Frontend/backend configuration expectations
 
@@ -92,4 +92,4 @@ This repository includes required workflow filenames for submission:
 - `run-frontend-tests.yml`
 - `run-integration-tests.yml`
 - `deploy-aws-amplify.yml`
-- `deploy-aws-lambda.yml`
+- `deploy-aws-ec2.yml` (Renamed from deploy-aws-lambda.yml)
