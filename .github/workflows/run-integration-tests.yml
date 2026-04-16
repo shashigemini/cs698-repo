@@ -31,6 +31,8 @@ jobs:
       - name: Setup frontend dependencies
         working-directory: apps/frontend
         run: |
+          flutter create . --platforms web,linux
+          rm -f test/widget_test.dart
           flutter pub get
           cat <<EOF > .env
           API_BASE_URL=http://localhost:8000
@@ -64,6 +66,8 @@ jobs:
       - name: Setup frontend dependencies
         working-directory: apps/frontend
         run: |
+          flutter create . --platforms web,linux
+          rm -f test/widget_test.dart
           flutter pub get
           cat <<EOF > .env
           API_BASE_URL=http://localhost:8000
