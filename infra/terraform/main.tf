@@ -94,17 +94,12 @@ resource "aws_security_group" "app_sg" {
 }
 
 # --- EC2 Instance ---
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-  owners = ["033233290242"] # Canonical
+data "aws_ssm_parameter" "ubuntu" {
+  name = "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
 resource "aws_instance" "app_server" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = "t3.medium"
   subnet_id              = aws_subnet.public.id
   key_name               = var.ec2_key_name
