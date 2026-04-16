@@ -30,7 +30,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Initialize project configuration
-        run: flutter create . --platforms web,linux
+        run: |
+          flutter create . --platforms web,linux
+          rm -f test/widget_test.dart
       - name: Generate env for CI
         run: |
           cat <<EOF > .env
