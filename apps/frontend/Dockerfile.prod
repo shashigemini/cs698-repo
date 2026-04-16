@@ -1,0 +1,39 @@
+# Stage 1: Build Flutter Web
+FROM ubuntu:22.04 AS build-env
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl git unzip xz-utils libglu1-mesa python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Flutter
+RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
+ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
+RUN git config --global --add safe.directory /usr/local/flutter
+RUN flutter doctor
+
+# Set up project
+WORKDIR /app
+COPY . .
+
+# Build arguments for .env
+ARG API_BASE_URL
+RUN echo "API_BASE_URL=$API_BASE_URL" > .env
+RUN echo "ANDROID_PACKAGE_NAME=com.shashigemini.cs698repo" >> .env
+RUN echo "ANDROID_CERT_HASH=DUMMY_HASH" >> .env
+RUN echo "IOS_BUNDLE_ID=com.shashigemini.cs698repo" >> .env
+RUN echo "IOS_TEAM_ID=DUMMY_TEAM_ID" >> .env
+RUN echo "SECURITY_WATCHER_MAIL=security@spiritualqa.com" >> .env
+RUN echo "SSL_CERT_FINGERPRINT=DUMMY_FINGERPRINT" >> .env
+RUN echo "USE_SSL_PINNING=false" >> .env
+
+# Build
+RUN flutter pub get
+RUN dart run build_runner build --delete-conflicting-outputs
+RUN flutter build web --release --base-href "/"
+
+# Stage 2: Serve with Nginx
+FROM nginx:alpine
+COPY --from=build-env /app/build/web /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

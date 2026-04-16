@@ -1,0 +1,127 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-cs698_test_db}
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-cs698_test_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    tmpfs:
+      - /qdrant/storage
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ENVIRONMENT: e2e_testing
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-cs698_test_db}
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-cs698_test_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: e2e_test_docs
+      # These must be set so the app boots, but they won't actually be called due to dependency overrides
+      OPENAI_API_KEY: e2e-mock-key
+      OPENAI_MODEL: gpt-3.5-turbo
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      JWT_PRIVATE_KEY: |
+        -----BEGIN PRIVATE KEY-----
+        MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCNuEAhTAmNjPwy
+        FBBCBSpsA6ttkzsr0jpDIu+4vIodv9hB1kDL6nPD6qBcrz9/4MhmkGe2mKs2scMf
+        SHFl7P/30rBXox5TjGQlKewh0RG/LcdLS3EWaZusy2DNaEDh6tPHZ9XWGHLo7skP
+        +6JiViM+4oHHvXg9bcz2+kXo/Rn1RThYkVJATkqMOij8gAAO7DeELSWVA49M4tgw
+        Cg1pkl+av6oXDqctdjFPwRDznni9B9cQliRiQxWO+Ra1wqsNOV0d/YX6Py4WORRl
+        qxn41eSTi1QzZj9DhWc6BZA0Bi92i/qn4ii+Ao7VAQxV9Jueog5ttZxU8uzoIn88
+        KNwtE9b/AgMBAAECggEAASaBvsNzQGbolS98gkywb3gIKDeNv2lRd8IM2B8Pr/Yi
+        t0YZ+I3Kqsh4zMfPaCZW+h4p+V175lHDF7nq0bz+xvA65js4v8zf8z1H4W5lCnxA
+        pefS3y+0R87O1lwGSs8xMOky3y4LoMBveWW9h7bTSmtkSk7LbxQ5GbgmYSHM2CTY
+        nBUNcV2ndofN4xQ8x7cPlg26qiVQCt0bcUZdOYj4p2DhWLAizVpq5ayiXbBo4hhF
+        ycK1NrC56iUDhWUrLOZM+MPDqpVuquY9rvKI1TCwasMCmgyO8yNgWiIZuqLmvFj0
+        uEIW72zkK3xdNh/CkWYsJrxAYAceXuJDbTJi0mWhgQKBgQDFbZS34uSXaNc6HjcQ
+        v4KAuElOmmH0F/NwiqdCmMIAathKRPk0qy/pPrTX2sDGOdpcYg6XRWW4yneEd5Gr
+        CHtVLTW3xDAPjIDfWpSRIV0g2GXmPmBOFU7cA0QVunAcT2tQWOp6oY4M1xfzkFFx
+        nomjmbCDA18alpLMTJ3yN9s+EQKBgQC3w7DNK81kIdBySvoV1E0tmTZC1CVdhyYd
+        W1+qJHLtdHV2KelsBJMnTPFBmmrlRvPKi6TqwXcOZMf834sxEYF2GsWsXAbRYslA
+        BTVv85yQBn1Qk0MOMt4/a3hm30xFjzc/3A09vjkIjBb07ZdIPVVD5SY/rjZGxL61
+        Hspsd+P0DwKBgEF9tFO7pHDFin/w/ftETBo/B7JXbB74wvyWQh3JZrGUv+MDNlfO
+        YbpR3tOr8T7QeisjLAvqLXA7WaJLt7qwuZjrwmIPZpIB3c450gbCto3quwLBtliw
+        oNRDERbUHdSGU+b3V/EOHn0L7RoSybGTEb1/ghozyBydzlyPHeX3uXbBAoGAAlU5
+        qWEk+mBzhP/urNhFIo8PYUnQL5/HnBfM3xwXWWxhEV7216g3NgiEB5EuSjrcXXXo
+        YhKSsFwXLd6opbbTLeypFccVTxMx+t4WD5XIJwvuC1fTQhrjN2rl3Gh5T2jCCs2A
+        XYhMsQ8WO4XIpeIhcvs1wRk1FzDoOuRpLXdYLYECgYBGwpLDVRA7iDz7NPEG0Ujp
+        CpKFARPAk63QWLe75qPS6Mp8QcuoVenJiXV477UthgIRPNtILuZKPJJbt5GqrNel
+        7TjUEUvSiYZxoSUXePg69YugiUeHdz0gMn8jgcLEpC5TSFGw9BffWTesLp6M7aFd
+        bg4MEBNXi/5M9aKf2HqpTQ==
+        -----END PRIVATE KEY-----
+      JWT_PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjbhAIUwJjYz8MhQQQgUq
+        bAOrbZM7K9I6QyLvuLyKHb/YQdZAy+pzw+qgXK8/f+DIZpBntpirNrHDH0hxZez/
+        99KwV6MeU4xkJSnsIdERvy3HS0txFmmbrMtgzWhA4erTx2fV1hhy6O7JD/uiYlYj
+        PuKBx714PW3M9vpF6P0Z9UU4WJFSQE5KjDoo/IAADuw3hC0llQOPTOLYMAoNaZJf
+        mr+qFw6nLXYxT8EQ8554vQfXEJYkYkMVjvkWtcKrDTldHf2F+j8uFjkUZasZ+NXk
+        k4tUM2Y/Q4VnOgWQNAYvdov6p+IovgKO1QEMVfSbnqIObbWcVPLs6CJ/PCjcLRPW
+        /wIDAQAB
+        -----END PUBLIC KEY-----
+      CSRF_SECRET: "e2e_csrf_secret_12345678901234567890"
+      JWT_ALGORITHM: RS256
+      RATE_LIMIT_GUEST_QUERY_MAX: 3
+    ports:
+      - "8000:8000"
+    command:
+      - bash
+      - -c
+      - |
+          for i in {1..15}; do
+            alembic upgrade head && break
+            echo "[WARN] alembic upgrade failed, retrying in 2s ($$i/15)"
+            sleep 2
+          done
+          exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health/full\")' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+

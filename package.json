@@ -1,0 +1,27 @@
+{
+  "name": "cs698-repo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Spiritual Q&A Platform monorepo with Flutter frontend, FastAPI backend, Terraform infra, and Docusaurus docs.",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "backend:test": "cd apps/backend && poetry run pytest -v",
+    "frontend:test": "cd apps/frontend && flutter test",
+    "docs:install": "cd apps/docs-site && npm ci",
+    "docs:build": "cd apps/docs-site && npm run build",
+    "e2e": "bash apps/frontend/tool/run_e2e.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shashigemini/cs698-repo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/shashigemini/cs698-repo/issues"
+  },
+  "homepage": "https://github.com/shashigemini/cs698-repo#readme"
+}

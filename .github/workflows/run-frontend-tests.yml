@@ -1,0 +1,57 @@
+name: run-frontend-tests
+
+on:
+  pull_request:
+    paths:
+      - "apps/frontend/**"
+      - ".github/workflows/run-frontend-tests.yml"
+      - ".github/workflows/run-integration-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/frontend/**"
+      - ".github/workflows/run-frontend-tests.yml"
+
+jobs:
+  frontend-verification:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Enable platforms
+        run: |
+          flutter config --enable-web
+          flutter config --enable-linux-desktop
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Initialize project configuration
+        run: |
+          flutter create . --platforms web,linux
+          rm -f test/widget_test.dart
+      - name: Generate env for CI
+        run: |
+          cat <<EOF > .env
+          API_BASE_URL=http://localhost:8000
+          ANDROID_PACKAGE_NAME=com.example.frontend
+          ANDROID_CERT_HASH=DUMMY
+          IOS_BUNDLE_ID=com.example.frontend
+          IOS_TEAM_ID=DUMMY
+          SECURITY_WATCHER_MAIL=security@example.org
+          SSL_CERT_FINGERPRINT=DUMMY
+          USE_SSL_PINNING=false
+          EOF
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Apply formatter
+        run: dart format lib test integration_test tool
+      - name: Static analysis
+        run: flutter analyze
+      - name: Frontend tests
+        run: flutter test --coverage
+      - name: Verify production web build
+        run: flutter build web --release --no-pub
