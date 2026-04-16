@@ -22,8 +22,8 @@ class ApiChatRepository implements ChatRepository {
         '/api/chat/query',
         data: {
           'query': query,
-          if (conversationId != null) 'conversation_id': conversationId,
-          if (guestSessionId != null) 'guest_session_id': guestSessionId,
+          'conversation_id': ?conversationId,
+          'guest_session_id': ?guestSessionId,
         },
       );
       return AnswerResult.fromJson(response.data!);

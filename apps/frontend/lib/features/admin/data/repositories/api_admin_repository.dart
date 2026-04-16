@@ -26,8 +26,8 @@ class ApiAdminRepository implements AdminRepository {
       ),
       'title': title,
       'logical_book_id': logicalBookId,
-      if (author != null) 'author': author,
-      if (edition != null) 'edition': edition,
+      'author': ?author,
+      'edition': ?edition,
     });
 
     await _dio.post<dynamic>(
