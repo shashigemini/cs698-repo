@@ -23,8 +23,14 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - name: Enable platforms
+        run: |
+          flutter config --enable-web
+          flutter config --enable-linux-desktop
       - name: Install dependencies
         run: flutter pub get
+      - name: Initialize project configuration
+        run: flutter create . --platforms web,linux
       - name: Generate env for CI
         run: |
           cat <<EOF > .env
@@ -46,4 +52,4 @@ jobs:
       - name: Frontend tests
         run: flutter test --coverage
       - name: Verify production web build
-        run: flutter build web --release
+        run: flutter build web --release --no-pub

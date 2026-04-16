@@ -26,13 +26,13 @@ step "Starting full-stack E2E environment"
 docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate
 
 step "Waiting for readiness: $E2E_BASE_URL/health/full"
-for i in {1..45}; do
+for i in {1..60}; do
   if curl -fsS "$E2E_BASE_URL/health/full" >/dev/null; then
     info "Backend readiness check passed"
     break
   fi
   sleep 2
-  if [ "$i" -eq 45 ]; then
+  if [ "$i" -eq 60 ]; then
     echo "[ERROR] backend failed readiness check" >&2
     echo "[INFO] Dumping compose service status and app logs for diagnosis" >&2
     docker compose -f "$COMPOSE_FILE" ps >&2 || true
