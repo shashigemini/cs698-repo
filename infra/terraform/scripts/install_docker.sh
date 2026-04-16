@@ -14,16 +14,16 @@ usermod -aG docker ubuntu
 
 REPO_DIR="/home/ubuntu/cs698-repo"
 
-if [ -d "${REPO_DIR}/.git" ]; then
-  git -C "${REPO_DIR}" fetch --all --prune
-  git -C "${REPO_DIR}" reset --hard origin/main
+if [ -d "$${REPO_DIR}/.git" ]; then
+  git -C "$${REPO_DIR}" fetch --all --prune
+  git -C "$${REPO_DIR}" reset --hard origin/main
 else
-  rm -rf "${REPO_DIR}"
-  git clone "${REPO_CLONE_URL}" "${REPO_DIR}"
+  rm -rf "$${REPO_DIR}"
+  git clone "${REPO_CLONE_URL}" "$${REPO_DIR}"
 fi
 
-chown -R ubuntu:ubuntu "${REPO_DIR}"
-cd "${REPO_DIR}/apps/backend"
+chown -R ubuntu:ubuntu "$${REPO_DIR}"
+cd "$${REPO_DIR}/apps/backend"
 
 cat <<EOF_ENV > .env
 POSTGRES_USER=postgres
@@ -36,5 +36,5 @@ JWT_PUBLIC_KEY='${JWT_PUBLIC_KEY}'
 ENVIRONMENT=production
 EOF_ENV
 
-cd "${REPO_DIR}"
+cd "$${REPO_DIR}"
 docker compose -f infra/production/docker-compose.prod.yml up -d --build
