@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 apt-get update
 apt-get install -y apt-transport-https ca-certificates curl software-properties-common git
@@ -10,10 +10,20 @@ apt-get install -y docker-ce docker-compose-plugin
 
 systemctl start docker
 systemctl enable docker
+usermod -aG docker ubuntu
 
-cd /home/ubuntu
-git clone ${REPO_CLONE_URL} cs698-repo
-cd cs698-repo/apps/backend
+REPO_DIR="/home/ubuntu/cs698-repo"
+
+if [ -d "${REPO_DIR}/.git" ]; then
+  git -C "${REPO_DIR}" fetch --all --prune
+  git -C "${REPO_DIR}" reset --hard origin/main
+else
+  rm -rf "${REPO_DIR}"
+  git clone "${REPO_CLONE_URL}" "${REPO_DIR}"
+fi
+
+chown -R ubuntu:ubuntu "${REPO_DIR}"
+cd "${REPO_DIR}/apps/backend"
 
 cat <<EOF_ENV > .env
 POSTGRES_USER=postgres
@@ -26,5 +36,5 @@ JWT_PUBLIC_KEY='${JWT_PUBLIC_KEY}'
 ENVIRONMENT=production
 EOF_ENV
 
-cd /home/ubuntu/cs698-repo
+cd "${REPO_DIR}"
 docker compose -f infra/production/docker-compose.prod.yml up -d --build
