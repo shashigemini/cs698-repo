@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.8.0
 
 dependencies:
   dio: any
@@ -33,6 +33,7 @@ dependencies:
   cupertino_icons: any
   file_picker: ^10.3.10
   marionette_logger: ^0.4.0
+  json_annotation: ^4.11.0
 
 dev_dependencies:
   flutter_test:
