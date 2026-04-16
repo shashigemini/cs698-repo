@@ -14,7 +14,11 @@ jobs:
         env:
           AMPLIFY_WEBHOOK_URL: ${{ secrets.AMPLIFY_PROD_WEBHOOK_URL }}
         run: |
-          test -n "$AMPLIFY_WEBHOOK_URL"
+          if [ -z "$AMPLIFY_WEBHOOK_URL" ]; then
+            echo "ERROR: AMPLIFY_PROD_WEBHOOK_URL is not set as a GitHub Secret."
+            echo "Please add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
           curl -fsS -X POST "$AMPLIFY_WEBHOOK_URL"
 
   deploy-frontend-staging:
@@ -25,5 +29,9 @@ jobs:
         env:
           AMPLIFY_WEBHOOK_URL: ${{ secrets.AMPLIFY_STAGING_WEBHOOK_URL }}
         run: |
-          test -n "$AMPLIFY_WEBHOOK_URL"
+          if [ -z "$AMPLIFY_WEBHOOK_URL" ]; then
+            echo "ERROR: AMPLIFY_STAGING_WEBHOOK_URL is not set as a GitHub Secret."
+            echo "Please add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
           curl -fsS -X POST "$AMPLIFY_WEBHOOK_URL"

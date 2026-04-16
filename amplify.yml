@@ -9,8 +9,10 @@ applications:
             - git clone https://github.com/flutter/flutter.git -b stable --depth 1
             - export PATH="$PATH:$(pwd)/flutter/bin"
             - flutter config --no-analytics
-            - flutter doctor -v
+            - flutter config --enable-web
             - flutter pub get
+            - flutter create . --platforms web
+            - dart run build_runner build --delete-conflicting-outputs
         build:
           commands:
             - flutter build web --release
