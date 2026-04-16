@@ -24,7 +24,13 @@ jobs:
           aws-region: us-east-1
       - uses: hashicorp/setup-terraform@v3
       - name: Terraform init
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ secrets.TF_STATE_KEY }}" \
+            -backend-config="region=${{ secrets.TF_STATE_REGION }}" \
+            -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
       - name: Terraform validate
         run: terraform validate
       - name: Terraform apply
@@ -40,6 +46,19 @@ jobs:
         run: |
           install -m 600 -D /dev/null ~/.ssh/ec2_deploy_key
           printf '%s' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_deploy_key
+      - name: Wait for EC2 SSH readiness
+        run: |
+          PUBLIC_IP="$(terraform output -raw public_ip)"
+          for attempt in {1..30}; do
+            if ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" "echo 'SSH is ready'" >/dev/null 2>&1; then
+              echo "SSH ready on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Waiting for SSH to become available (attempt ${attempt}/30)..."
+            sleep 10
+          done
+          echo "SSH did not become available in time."
+          exit 1
       - name: Deploy/update backend container stack
         run: |
           PUBLIC_IP="$(terraform output -raw public_ip)"
