@@ -1,14 +1,16 @@
 name: deploy-aws-ec2
 
 on:
-  workflow_run:
-    workflows: ["run-backend-tests", "run-integration-tests"]
-    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - "infra/**"
+      - ".github/workflows/deploy-aws-ec2.yml"
   workflow_dispatch:
 
 jobs:
   deploy-containerized-backend:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     defaults:
       run:
