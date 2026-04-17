@@ -30,6 +30,18 @@ class HttpInterceptor extends Interceptor {
        _dio = dio,
        _refreshDio = refreshDio;
 
+  bool _isBootstrapAuthPath(String path) {
+    final normalizedPath = Uri.tryParse(path)?.path ?? path;
+    const bootstrapPaths = <String>{
+      '/api/auth/login',
+      '/api/auth/login/verify',
+      '/api/auth/register',
+      '/api/auth/recover',
+      '/api/auth/refresh',
+    };
+    return bootstrapPaths.contains(normalizedPath);
+  }
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -37,17 +49,41 @@ class HttpInterceptor extends Interceptor {
   ) async {
     AppLogger.w('🔥 HttpInterceptor: onRequest ${options.method} ${options.path}');
 
-    AppLogger.w('🔥 HttpInterceptor: Calling _storage.getTokens()');
-    final tokens = await _storage.getTokens();
-    AppLogger.w('🔥 HttpInterceptor: Finished _storage.getTokens()');
-    
+    if (_isBootstrapAuthPath(options.path)) {
+      handler.next(options);
+      return;
+    }
+
+    TokenPair? tokens;
+    try {
+      AppLogger.w('🔥 HttpInterceptor: Calling _storage.getTokens()');
+      tokens = await _storage.getTokens();
+      AppLogger.w('🔥 HttpInterceptor: Finished _storage.getTokens()');
+    } catch (e, stackTrace) {
+      AppLogger.w(
+        'HttpInterceptor: Failed to read auth tokens from storage; proceeding without auth headers',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      handler.next(options);
+      return;
+    }
+
     if (tokens != null) {
       options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
     }
 
-    final csrf = await _storage.getCsrfToken();
-    if (csrf != null) {
-      options.headers['X-CSRF-Token'] = csrf;
+    try {
+      final csrf = await _storage.getCsrfToken();
+      if (csrf != null) {
+        options.headers['X-CSRF-Token'] = csrf;
+      }
+    } catch (e, stackTrace) {
+      AppLogger.w(
+        'HttpInterceptor: Failed to read CSRF token from storage; proceeding without CSRF header',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
 
     AppLogger.w('🔥 HttpInterceptor: Calling handler.next()');

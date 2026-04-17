@@ -8,6 +8,8 @@ import 'package:mocktail/mocktail.dart';
 class MockStorage extends Mock implements StorageService {}
 
 class MockDio extends Mock implements Dio {}
+class MockRequestInterceptorHandler extends Mock
+    implements RequestInterceptorHandler {}
 
 void main() {
   late HttpInterceptor interceptor;
@@ -54,11 +56,13 @@ void main() {
       when(() => mockStorage.getTokens()).thenAnswer((_) async => tokens);
 
       final options = RequestOptions(path: '/test');
-      final handler = RequestInterceptorHandler();
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
 
       await interceptor.onRequest(options, handler);
 
       expect(options.headers['Authorization'], 'Bearer valid-token');
+      verify(() => handler.next(options)).called(1);
     });
 
     test('onRequest attaches CSRF header when token exists', () async {
@@ -67,11 +71,88 @@ void main() {
       ).thenAnswer((_) async => 'csrf-123');
 
       final options = RequestOptions(path: '/test');
-      final handler = RequestInterceptorHandler();
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
 
       await interceptor.onRequest(options, handler);
 
       expect(options.headers['X-CSRF-Token'], 'csrf-123');
+      verify(() => handler.next(options)).called(1);
+    });
+
+    test('onRequest skips storage reads for /api/auth/login', () async {
+      final options = RequestOptions(path: '/api/auth/login');
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onRequest(options, handler);
+
+      verifyNever(() => mockStorage.getTokens());
+      verifyNever(() => mockStorage.getCsrfToken());
+      verify(() => handler.next(options)).called(1);
+    });
+
+    test('onRequest skips storage reads for /api/auth/register', () async {
+      final options = RequestOptions(path: '/api/auth/register');
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onRequest(options, handler);
+
+      verifyNever(() => mockStorage.getTokens());
+      verifyNever(() => mockStorage.getCsrfToken());
+      verify(() => handler.next(options)).called(1);
+    });
+
+    test('onRequest proceeds without auth headers when getTokens throws', () async {
+      when(
+        () => mockStorage.getTokens(),
+      ).thenThrow(Exception('storage unavailable'));
+      final options = RequestOptions(path: '/api/protected');
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onRequest(options, handler);
+
+      expect(options.headers.containsKey('Authorization'), isFalse);
+      expect(options.headers.containsKey('X-CSRF-Token'), isFalse);
+      verify(() => handler.next(options)).called(1);
+    });
+
+    test('onRequest attaches auth and csrf headers for protected route', () async {
+      final tokens = TokenPair(
+        accessToken: 'valid-token',
+        refreshToken: 'refresh-token',
+        accessExpiresAt: DateTime.now().add(const Duration(hours: 1)),
+      );
+      when(() => mockStorage.getTokens()).thenAnswer((_) async => tokens);
+      when(
+        () => mockStorage.getCsrfToken(),
+      ).thenAnswer((_) async => 'csrf-123');
+      final options = RequestOptions(path: '/api/protected');
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onRequest(options, handler);
+
+      expect(options.headers['Authorization'], 'Bearer valid-token');
+      expect(options.headers['X-CSRF-Token'], 'csrf-123');
+      verify(() => handler.next(options)).called(1);
+    });
+
+    test('onRequest storage exception path does not deadlock', () async {
+      when(
+        () => mockStorage.getTokens(),
+      ).thenThrow(StateError('storage read failed'));
+      final options = RequestOptions(path: '/api/protected');
+      final handler = MockRequestInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor
+          .onRequest(options, handler)
+          .timeout(const Duration(seconds: 1));
+
+      verify(() => handler.next(options)).called(1);
     });
 
     test('onError attempts refresh on 401', () async {
