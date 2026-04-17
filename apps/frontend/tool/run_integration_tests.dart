@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_print
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,6 +10,13 @@ import 'dart:io';
 /// Runs tests sequentially to avoid resource locks and cleanly parses
 /// the JSON output in-memory.
 Future<void> main(List<String> args) async {
+  final timeoutMinutes = int.tryParse(
+    Platform.environment['INTEGRATION_TEST_TIMEOUT_MINUTES'] ?? '',
+  );
+  final perTestTimeout = Duration(
+    minutes: timeoutMinutes != null && timeoutMinutes > 0 ? timeoutMinutes : 15,
+  );
+
   final integrationTestDir = Directory('integration_test');
   if (!integrationTestDir.existsSync()) {
     print('❌ integration_test directory not found.');
@@ -66,8 +74,12 @@ Future<void> main(List<String> args) async {
     await logSink?.close();
     return;
   }
+  testFiles.sort((a, b) => a.path.compareTo(b.path));
 
-  log('Found ${testFiles.length} integration tests. Running sequentially...\n');
+  log(
+    'Found ${testFiles.length} integration tests. Running sequentially '
+    '(per-test timeout: ${perTestTimeout.inMinutes}m)...\n',
+  );
   var failedCount = 0;
 
   for (final file in testFiles) {
@@ -111,10 +123,11 @@ Future<void> main(List<String> args) async {
     final process = await Process.start(
       executable,
       arguments,
-      runInShell: true,
+      runInShell: Platform.isWindows,
     );
 
     var errorCount = 0;
+    var timedOut = false;
 
     final stdoutFuture = process.stdout
         .transform(systemEncoding.decoder)
@@ -163,10 +176,23 @@ Future<void> main(List<String> args) async {
       log('⚠️ STDERR: $error');
     }).asFuture<void>();
 
-    final exitCode = await process.exitCode;
+    final exitCode = await process.exitCode.timeout(
+      perTestTimeout,
+      onTimeout: () async {
+        timedOut = true;
+        log(
+          '⏱️ Timeout after ${perTestTimeout.inMinutes} minutes for ${file.path}. '
+          'Attempting to terminate test process...',
+        );
+        process.kill(ProcessSignal.sigterm);
+        await Future<void>.delayed(const Duration(seconds: 5));
+        process.kill(ProcessSignal.sigkill);
+        return 124;
+      },
+    );
     await Future.wait([stdoutFuture, stderrFuture]);
 
-    if (exitCode != 0 || errorCount > 0) {
+    if (exitCode != 0 || errorCount > 0 || timedOut) {
       log('❌ ${file.path} FAILED.');
       failedCount++;
     } else {
