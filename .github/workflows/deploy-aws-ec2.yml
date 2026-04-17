@@ -83,5 +83,5 @@ jobs:
             "cd /home/ubuntu/cs698-repo && sudo docker compose --env-file /home/ubuntu/cs698-repo/apps/backend/.env -f infra/production/docker-compose.prod.yml pull && sudo docker compose --env-file /home/ubuntu/cs698-repo/apps/backend/.env -f infra/production/docker-compose.prod.yml up -d --build"
       - name: Post-deploy readiness check
         run: |
-          BACKEND_URL="http://$(terraform output -raw public_ip):8000"
+          BACKEND_URL="$(terraform output -raw backend_url)"
           curl -fsS "$BACKEND_URL/health/full"
