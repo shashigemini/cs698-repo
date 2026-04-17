@@ -19,7 +19,6 @@ services:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
         tag: "{{.Name}}"
-        awslogs-create-group: "true"
 
   redis:
     image: redis:7-alpine
@@ -37,7 +36,6 @@ services:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
         tag: "{{.Name}}"
-        awslogs-create-group: "true"
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -50,7 +48,6 @@ services:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
         tag: "{{.Name}}"
-        awslogs-create-group: "true"
 
   backend:
     build:
@@ -85,7 +82,6 @@ services:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
         tag: "{{.Name}}"
-        awslogs-create-group: "true"
 
 volumes:
   postgres_data:
