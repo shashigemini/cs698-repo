@@ -1,6 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
+# Add 1GB Swap file
+if [ ! -f /swapfile ]; then
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+fi
+
 apt-get update
 apt-get install -y apt-transport-https ca-certificates curl software-properties-common git
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -

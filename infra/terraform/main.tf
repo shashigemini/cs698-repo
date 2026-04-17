@@ -169,10 +169,15 @@ data "aws_ssm_parameter" "ubuntu" {
 
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
-  instance_type          = "t3.micro"
+  instance_type          = "t3.medium"
   subnet_id              = aws_subnet.public_a.id
   key_name               = var.ec2_key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
 
   user_data = templatefile("${path.module}/scripts/install_docker.sh", {
     OPENAI_API_KEY  = var.openai_api_key

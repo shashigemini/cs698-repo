@@ -33,7 +33,7 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.in-project true
 RUN poetry config keyring.enabled false
 RUN poetry config installer.max-workers 1
-RUN poetry install --only main --no-interaction --no-ansi
+RUN poetry install --only main --no-interaction --no-ansi --no-root
 
 # Stage 2: Runtime
 FROM python:3.11-slim AS runtime

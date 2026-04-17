@@ -161,12 +161,12 @@ jobs:
 
       - name: Wait for cloud-init bootstrap completion
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" \
+          ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" \
             "cloud-init status --wait"
 
       - name: Deploy/update backend container stack
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" <<'EOF_DEPLOY'
+          ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" <<'EOF_DEPLOY'
             set -eu
             REPO_DIR="/home/ubuntu/cs698-repo"
             cd "$REPO_DIR"
@@ -175,9 +175,15 @@ jobs:
             sudo -u ubuntu git fetch origin main
             sudo -u ubuntu git reset --hard origin/main
             
-            echo "Pulling latest images and updating containers..."
+            echo "Cleaning up old Docker resources..."
+            sudo docker system prune -af
+            
+            echo "Pulling latest images..."
             sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml pull
-            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d --build
+            
+            echo "Building and starting containers..."
+            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml build
+            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d
           EOF_DEPLOY
 
       - name: Post-deploy readiness check
@@ -198,7 +204,7 @@ jobs:
           done
 
           echo "Healthcheck failed after ${MAX_ATTEMPTS} attempts. Collecting remote diagnostics..."
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" <<'EOF_SSH'
+          ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" <<'EOF_SSH'
             set +e
             echo "===== docker compose ps ====="
             sudo docker compose -f /home/ubuntu/cs698-repo/infra/production/docker-compose.prod.yml ps
