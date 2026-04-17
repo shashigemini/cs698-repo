@@ -18,7 +18,7 @@ services:
       options:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
-        awslogs-stream-prefix: postgres
+        tag: "{{.Name}}"
         awslogs-create-group: "true"
 
   redis:
@@ -36,7 +36,7 @@ services:
       options:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
-        awslogs-stream-prefix: redis
+        tag: "{{.Name}}"
         awslogs-create-group: "true"
 
   qdrant:
@@ -49,7 +49,7 @@ services:
       options:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
-        awslogs-stream-prefix: qdrant
+        tag: "{{.Name}}"
         awslogs-create-group: "true"
 
   backend:
@@ -84,7 +84,7 @@ services:
       options:
         awslogs-region: us-east-1
         awslogs-group: /cs698/production
-        awslogs-stream-prefix: backend
+        tag: "{{.Name}}"
         awslogs-create-group: "true"
 
 volumes:
