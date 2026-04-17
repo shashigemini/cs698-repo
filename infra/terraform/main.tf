@@ -113,5 +113,8 @@ resource "aws_instance" "app_server" {
     REPO_CLONE_URL  = var.repo_clone_url
   })
 
-  tags = { Name = "cs698-app-server" }
+  tags = {
+    Name      = "cs698-app-server"
+    ManagedBy = "Terraform"
+  }
 }

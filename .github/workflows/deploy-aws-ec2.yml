@@ -15,6 +15,10 @@ jobs:
     defaults:
       run:
         working-directory: infra/terraform
+    env:
+      TF_STATE_KEY: cs698/terraform.tfstate
+      TF_PLAN_FILE: tfplan.binary
+      TF_PLAN_TEXT: tfplan.txt
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -23,42 +27,103 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - uses: hashicorp/setup-terraform@v3
-      - name: Terraform init
+
+      - name: Validate Terraform backend configuration
         run: |
           TF_STATE_BUCKET="${{ secrets.TF_STATE_BUCKET }}"
-          TF_STATE_KEY="${{ secrets.TF_STATE_KEY }}"
           TF_STATE_REGION="${{ secrets.TF_STATE_REGION }}"
+          TF_STATE_KEY_SECRET="${{ secrets.TF_STATE_KEY }}"
 
           if [ -z "$TF_STATE_BUCKET" ]; then
             echo "Missing required secret: TF_STATE_BUCKET"
             exit 1
           fi
 
-          if [ -z "$TF_STATE_KEY" ]; then
-            TF_STATE_KEY="cs698/terraform.tfstate"
-          fi
-
           if [ -z "$TF_STATE_REGION" ]; then
-            TF_STATE_REGION="us-east-1"
+            echo "Missing required secret: TF_STATE_REGION"
+            exit 1
           fi
 
+          if [ -z "$TF_STATE_KEY" ]; then
+            echo "TF_STATE_KEY must not be empty"
+            exit 1
+          fi
+
+          EXPECTED_TF_STATE_KEY="cs698/terraform.tfstate"
+          if [ "$TF_STATE_KEY" != "$EXPECTED_TF_STATE_KEY" ]; then
+            echo "TF_STATE_KEY changed unexpectedly: '$TF_STATE_KEY' (expected '$EXPECTED_TF_STATE_KEY')"
+            exit 1
+          fi
+
+          if [ -n "$TF_STATE_KEY_SECRET" ] && [ "$TF_STATE_KEY_SECRET" != "$TF_STATE_KEY" ]; then
+            echo "Secret TF_STATE_KEY conflicts with enforced workflow key ('$TF_STATE_KEY')."
+            echo "Remove or align TF_STATE_KEY secret to prevent inconsistent backend usage across environments."
+            exit 1
+          fi
+
+      - name: Print effective Terraform backend settings
+        run: |
+          echo "Terraform backend configuration (effective):"
+          echo "  bucket=${{ secrets.TF_STATE_BUCKET }}"
+          echo "  key=${TF_STATE_KEY}"
+          echo "  region=${{ secrets.TF_STATE_REGION }}"
+
+      - name: Terraform init
+        run: |
           terraform init \
-            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
             -backend-config="key=${TF_STATE_KEY}" \
-            -backend-config="region=${TF_STATE_REGION}" \
+            -backend-config="region=${{ secrets.TF_STATE_REGION }}" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
+
       - name: Terraform validate
         run: terraform validate
-      - name: Terraform apply
+
+      - name: Terraform plan
+        id: terraform_plan
         run: |
-          terraform apply -auto-approve \
+          set +e
+          terraform plan -detailed-exitcode -no-color \
+            -out="${TF_PLAN_FILE}" \
             -var "openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
             -var "csrf_secret=${{ secrets.CSRF_SECRET }}" \
             -var "jwt_private_key=${{ secrets.JWT_PRIVATE_KEY }}" \
             -var "jwt_public_key=${{ secrets.JWT_PUBLIC_KEY }}" \
             -var "ec2_key_name=${{ secrets.EC2_KEY_NAME }}" \
             -var "repo_clone_url=https://github.com/${{ github.repository }}.git"
+          PLAN_EXIT_CODE=$?
+          set -e
+
+          if [ "$PLAN_EXIT_CODE" -eq 1 ]; then
+            echo "terraform plan failed"
+            exit 1
+          fi
+
+          terraform show -no-color "${TF_PLAN_FILE}" > "${TF_PLAN_TEXT}"
+
+          echo "Terraform plan summary:"
+          if ! grep -E "^Plan:" "${TF_PLAN_TEXT}"; then
+            echo "No explicit Plan line found; showing final 20 lines for auditability:"
+            tail -n 20 "${TF_PLAN_TEXT}"
+          fi
+
+          if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+            echo "Terraform plan exit code 0: no changes."
+          elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+            echo "Terraform plan exit code 2: changes detected."
+          else
+            echo "Unexpected terraform plan exit code: $PLAN_EXIT_CODE"
+            exit 1
+          fi
+
+      - name: Terraform apply
+        if: steps.terraform_plan.outputs.changes == 'true'
+        run: |
+          terraform apply -auto-approve "${TF_PLAN_FILE}"
+
       - name: Configure SSH key
         run: |
           install -m 600 -D /dev/null ~/.ssh/ec2_deploy_key
