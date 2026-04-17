@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -57,9 +58,37 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Invalid email or password'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     verify(
       () => mockAuthRepository.login('test@test.com', 'wrongpass'),
     ).called(1);
+  });
+
+  testWidgets('Login shows timeout snackbar and clears loading', (tester) async {
+    final hangingLoginCompleter = Completer<void>();
+    when(() => mockAuthRepository.login(any(), any())).thenAnswer((_) async {
+      await hangingLoginCompleter.future;
+    });
+
+    await tester.pumpWidget(createSubject());
+    await tester.enterText(find.byKey(const Key('email_field')), 'test@test.com');
+    await tester.enterText(find.byKey(const Key('password_field')), 'ValidPass1!');
+
+    final loginBtn = find.byKey(const Key('login_button'));
+    await tester.ensureVisible(loginBtn);
+    await tester.tap(loginBtn);
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 21));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Request timed out. Check backend/network and try again.'),
+      findsOneWidget,
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   testWidgets('Toggles between Login and Register tabs', (tester) async {
@@ -100,10 +129,13 @@ void main() {
     verifyNever(() => mockAuthRepository.register(any(), any()));
   });
 
-  testWidgets('Register successful calls repository method', (tester) async {
+  testWidgets(
+    'Register success shows mnemonic confirmation and finalizes registration',
+    (tester) async {
     when(
       () => mockAuthRepository.register(any(), any()),
     ).thenAnswer((_) async => 'mock-mnemonic-phrase');
+    when(() => mockAuthRepository.finalizeRegistration()).thenAnswer((_) async {});
 
     await tester.pumpWidget(createSubject());
 
@@ -122,11 +154,34 @@ void main() {
     await tester.tap(registerButton);
     // Wait for the async register Future and dialog open animation
     await tester.pump(); // Start the async call
-    await tester.pump(const Duration(milliseconds: 100)); // Complete microtasks
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mnemonic_confirm_button')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mnemonic_confirm_button')));
+    await tester.pumpAndSettle();
 
     verify(
       () => mockAuthRepository.register('newuser@test.com', 'ValidPass1!'),
     ).called(1);
+    verify(() => mockAuthRepository.finalizeRegistration()).called(1);
+  });
+
+  testWidgets('Login exception clears loading indicator', (tester) async {
+    when(
+      () => mockAuthRepository.login(any(), any()),
+    ).thenThrow(const AppNetworkException('No internet connection'));
+
+    await tester.pumpWidget(createSubject());
+    await tester.enterText(find.byKey(const Key('email_field')), 'test@test.com');
+    await tester.enterText(find.byKey(const Key('password_field')), 'ValidPass1!');
+
+    final loginBtn = find.byKey(const Key('login_button'));
+    await tester.ensureVisible(loginBtn);
+    await tester.tap(loginBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No internet connection'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   testWidgets('Guest Login shows loading state', (tester) async {

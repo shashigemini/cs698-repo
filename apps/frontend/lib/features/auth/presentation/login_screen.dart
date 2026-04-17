@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,6 +46,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _isLogin = widget.initialLoginState;
   }
 
+  Future<T?> _runWithLoadingGuard<T>(Future<T> Function() action) async {
+    if (_isLoading) return null; // Prevent duplicate taps while loading
+    setState(() => _isLoading = true);
+    try {
+      return await action().timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      if (mounted) {
+        _showError(
+          'Request timed out. Check backend/network and try again.',
+        );
+      }
+    } on AppException catch (e) {
+      if (mounted) {
+        _showError(e.message);
+      }
+    } on DioException catch (e) {
+      if (!mounted) return null;
+      if (e.error is AppException) {
+        _showError((e.error as AppException).message);
+        return null;
+      }
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          _showError('Request timed out. Check backend/network and try again.');
+          break;
+        case DioExceptionType.connectionError:
+          _showError('Unable to reach server. Check your network and try again.');
+          break;
+        default:
+          _showError('Request failed. Please try again.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showError('Something went wrong. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+    return null;
+  }
+
   Future<void> _handleAuth() async {
     final email = _isLogin
         ? _emailController.text
@@ -70,67 +114,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      if (_isLogin) {
-        await ref.read(authControllerProvider.notifier).login(email, password);
-      } else {
-        final mnemonic = await ref
-            .read(authControllerProvider.notifier)
-            .register(email, password);
-
-        if (mounted) {
-          debugPrint('UI: Register success, showing MnemonicDisplayDialog');
-          await showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => MnemonicDisplayDialog(mnemonic: mnemonic),
-          );
-
-          // After mnemonic is acknowledged, finalize registration to trigger redirect
-          if (mounted) {
-            await ref
-                .read(authControllerProvider.notifier)
-                .finalizeRegistration();
-          }
-        }
-      }
-      // Navigation handled by GoRouter redirect
-    } catch (e) {
-      if (mounted) {
-        var message = e.toString();
-        if (e is AppException) {
-          message = e.message;
-        } else if (e is DioException && e.error is AppException) {
-          message = (e.error as AppException).message;
-        }
-        _showError(message);
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (_isLogin) {
+      await _runWithLoadingGuard(
+        () => ref.read(authControllerProvider.notifier).login(email, password),
+      );
+      return;
     }
+
+    final mnemonic = await _runWithLoadingGuard<String>(
+      () => ref.read(authControllerProvider.notifier).register(email, password),
+    );
+    if (mnemonic == null || !mounted) return;
+
+    debugPrint('UI: Register success, showing MnemonicDisplayDialog');
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => MnemonicDisplayDialog(mnemonic: mnemonic),
+    );
+
+    // After mnemonic is acknowledged, finalize registration to trigger redirect
+    if (mounted) {
+      await _runWithLoadingGuard<void>(
+        () => ref.read(authControllerProvider.notifier).finalizeRegistration(),
+      );
+    }
+    // Navigation handled by GoRouter redirect
   }
 
   Future<void> _guestLogin() async {
-    if (_isLoading) return; // Prevent multiple taps
-    setState(() => _isLoading = true);
-    try {
-      await ref.read(authControllerProvider.notifier).loginAnonymously();
-      // Navigation handled by GoRouter redirect
-    } catch (e) {
-      if (mounted) {
-        var message = e.toString();
-        if (e is AppException) {
-          message = e.message;
-        } else if (e is DioException && e.error is AppException) {
-          message = (e.error as AppException).message;
-        }
-        _showError('Guest login failed: $message');
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await _runWithLoadingGuard(
+      () => ref.read(authControllerProvider.notifier).loginAnonymously(),
+    );
+    // Navigation handled by GoRouter redirect
   }
 
   @override
