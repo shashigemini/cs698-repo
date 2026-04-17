@@ -43,7 +43,7 @@ CSRF_SECRET=${CSRF_SECRET}
 JWT_PRIVATE_KEY='${JWT_PRIVATE_KEY}'
 JWT_PUBLIC_KEY='${JWT_PUBLIC_KEY}'
 ENVIRONMENT=production
-CORS_ORIGINS='["https://main.d3h75lrebnktpp.amplifyapp.com"]'
+CORS_ORIGINS='["https://main.d3h75lrebnktpp.amplifyapp.com", "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:8080"]'
 EOF_ENV
 
 cd "$${REPO_DIR}"

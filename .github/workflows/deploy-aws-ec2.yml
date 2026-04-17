@@ -176,8 +176,10 @@ jobs:
             sudo -u ubuntu git reset --hard origin/main
             
             echo "Updating environment variables..."
-            if ! grep -q "CORS_ORIGINS=" "$REPO_DIR/apps/backend/.env"; then
-              echo 'CORS_ORIGINS='\''["https://main.d3h75lrebnktpp.amplifyapp.com"]'\''' | sudo tee -a "$REPO_DIR/apps/backend/.env"
+            if grep -q "CORS_ORIGINS=" "$REPO_DIR/apps/backend/.env"; then
+              sudo sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS='\''["https://main.d3h75lrebnktpp.amplifyapp.com", "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:8080"]'\''|' "$REPO_DIR/apps/backend/.env"
+            else
+              echo 'CORS_ORIGINS='\''["https://main.d3h75lrebnktpp.amplifyapp.com", "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:8080"]'\''' | sudo tee -a "$REPO_DIR/apps/backend/.env"
             fi
             
             echo "Cleaning up old Docker resources..."
