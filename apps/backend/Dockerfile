@@ -77,10 +77,8 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run with uvicorn (4 workers for production)
-CMD ["uvicorn", "app.main:app", \
-    "--host", "0.0.0.0", \
-    "--port", "8000", \
-    "--workers", "4", \
-    "--proxy-headers", \
-    "--forwarded-allow-ips", "*"]
+# Make entrypoint executable
+RUN chmod +x /app/scripts/entrypoint.sh
+
+# Run migrations then start uvicorn
+CMD ["/app/scripts/entrypoint.sh"]

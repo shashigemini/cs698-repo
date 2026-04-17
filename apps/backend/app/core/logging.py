@@ -1,11 +1,23 @@
-"""Structured logging with PII scrubbing."""
+"""Structured logging with PII scrubbing and request tracing."""
 
+import contextvars
 import json
 import logging
 import re
 import sys
 from datetime import datetime, timezone
 from typing import Any
+
+# Context variables for per-request tracing
+request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default=""
+)
+request_path_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_path", default=""
+)
+request_method_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_method", default=""
+)
 
 _SENSITIVE_KEYS = frozenset({
     "password",
@@ -47,15 +59,27 @@ def scrub(data: Any) -> Any:
 
 
 class JsonFormatter(logging.Formatter):
-    """JSON formatter for production logs."""
+    """JSON formatter for production logs with request tracing."""
 
     def format(self, record: logging.LogRecord) -> str:
-        payload = {
+        payload: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": scrub(record.getMessage()),
         }
+
+        # Inject request context if available
+        rid = request_id_var.get("")
+        if rid:
+            payload["request_id"] = rid
+        path = request_path_var.get("")
+        if path:
+            payload["path"] = path
+        method = request_method_var.get("")
+        if method:
+            payload["method"] = method
+
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload)

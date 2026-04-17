@@ -10,6 +10,8 @@ import 'core/services/local_settings_store.dart';
 import 'core/services/security_service.dart';
 import 'core/utils/app_logger.dart';
 import 'core/providers/demo_mode_provider.dart';
+import 'core/services/mock_storage_service.dart';
+import 'core/services/storage_provider.dart';
 import 'features/chat/data/providers/chat_repository_provider.dart';
 import 'features/chat/data/providers/api_chat_repository_provider.dart';
 import 'main.dart';
@@ -35,6 +37,7 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        storageServiceProvider.overrideWithValue(MockStorageService()),
         // Enable demo mode
         isDemoModeProvider.overrideWithValue(true),
         // Connect to real backend

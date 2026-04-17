@@ -13,6 +13,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /cs698/production
+        awslogs-stream-prefix: postgres
+        awslogs-create-group: "true"
 
   redis:
     image: redis:7-alpine
@@ -24,12 +31,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /cs698/production
+        awslogs-stream-prefix: redis
+        awslogs-create-group: "true"
 
   qdrant:
     image: qdrant/qdrant:latest
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /cs698/production
+        awslogs-stream-prefix: qdrant
+        awslogs-create-group: "true"
 
   backend:
     build:
@@ -58,6 +79,13 @@ services:
       - "8000:8000"
     volumes:
       - pdf_storage:/app/data/pdfs
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /cs698/production
+        awslogs-stream-prefix: backend
+        awslogs-create-group: "true"
 
 volumes:
   postgres_data:

@@ -31,6 +31,7 @@ EXEMPT_PATHS = {
     "/api/auth/login/verify",
     "/api/auth/refresh",
     "/api/auth/recover",
+    "/api/chat/query",
     "/health",
     "/health/full",
     "/docs",

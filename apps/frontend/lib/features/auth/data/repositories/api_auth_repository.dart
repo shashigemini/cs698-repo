@@ -103,6 +103,9 @@ class ApiAuthRepository implements AuthRepository {
         ),
       );
 
+      // Fetch CSRF token for subsequent mutation requests
+      await _fetchAndSaveCsrfToken(tokenData.accessToken);
+
       _currentUser = 'auth-user';
       _currentEmail = email;
       _controller.add(_currentUser);
@@ -159,6 +162,9 @@ class ApiAuthRepository implements AuthRepository {
           accessExpiresAt: DateTime.parse(tokenData.accessExpiresAt),
         ),
       );
+
+      // Fetch CSRF token for subsequent mutation requests
+      await _fetchAndSaveCsrfToken(tokenData.accessToken);
 
       _currentUser = 'new-user';
       _currentEmail = email;
@@ -319,6 +325,29 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> finalizeRegistration() async {
     _controller.add(_currentUser);
+  }
+
+  /// Fetches a CSRF token from the server and saves it to storage.
+  ///
+  /// Called after login/register so the [HttpInterceptor] can
+  /// attach it to subsequent mutation requests.
+  Future<void> _fetchAndSaveCsrfToken(String accessToken) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/csrf',
+        options: Options(
+          headers: {'Authorization': 'Bearer $accessToken'},
+        ),
+      );
+      final token = response.data?['csrf_token'] as String?;
+      if (token != null) {
+        await _storage.saveCsrfToken(token);
+        AppLogger.i('ApiAuthRepository: CSRF token fetched and saved');
+      }
+    } catch (e) {
+      // Non-fatal: CSRF may not be enforced in all environments
+      AppLogger.w('ApiAuthRepository: Failed to fetch CSRF token: $e');
+    }
   }
 
   void _handleDioError(DioException e) {

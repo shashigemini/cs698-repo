@@ -167,12 +167,48 @@ data "aws_ssm_parameter" "ubuntu" {
   name = "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
+# --- IAM Role for EC2 (CloudWatch Logs access) ---
+resource "aws_iam_role" "ec2_app" {
+  name = "cs698-${var.environment}-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "cloudwatch_logs" {
+  role       = aws_iam_role.ec2_app.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_instance_profile" "ec2_app" {
+  name = "cs698-${var.environment}-ec2-profile"
+  role = aws_iam_role.ec2_app.name
+}
+
+# --- CloudWatch Log Group ---
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/cs698/${var.environment}"
+  retention_in_days = 7
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = "t3.medium"
   subnet_id              = aws_subnet.public_a.id
   key_name               = var.ec2_key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_app.name
 
   root_block_device {
     volume_size = 20
