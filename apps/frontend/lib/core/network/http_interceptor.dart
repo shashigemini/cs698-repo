@@ -12,6 +12,8 @@ import '../utils/app_logger.dart';
 /// outgoing requests, attempts token refresh on 401 responses,
 /// and maps server error codes to typed exceptions.
 class HttpInterceptor extends Interceptor {
+  static const String _refreshRetriedKey = 'refresh_retried';
+
   final StorageService _storage;
   final Dio _dio;
   final Dio? _refreshDio;
@@ -30,6 +32,23 @@ class HttpInterceptor extends Interceptor {
        _dio = dio,
        _refreshDio = refreshDio;
 
+  bool _isBootstrapAuthPath(String path) {
+    final normalizedPath = Uri.tryParse(path)?.path ?? path;
+    const bootstrapPaths = <String>{
+      '/api/auth/login',
+      '/api/auth/login/verify',
+      '/api/auth/register',
+      '/api/auth/recover',
+      '/api/auth/refresh',
+    };
+    return bootstrapPaths.contains(normalizedPath);
+  }
+
+  bool _shouldSkipRefreshPath(String path) {
+    final normalizedPath = Uri.tryParse(path)?.path ?? path;
+    return _isBootstrapAuthPath(normalizedPath) || normalizedPath == '/api/csrf';
+  }
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -37,17 +56,41 @@ class HttpInterceptor extends Interceptor {
   ) async {
     AppLogger.w('🔥 HttpInterceptor: onRequest ${options.method} ${options.path}');
 
-    AppLogger.w('🔥 HttpInterceptor: Calling _storage.getTokens()');
-    final tokens = await _storage.getTokens();
-    AppLogger.w('🔥 HttpInterceptor: Finished _storage.getTokens()');
-    
+    if (_isBootstrapAuthPath(options.path)) {
+      handler.next(options);
+      return;
+    }
+
+    TokenPair? tokens;
+    try {
+      AppLogger.w('🔥 HttpInterceptor: Calling _storage.getTokens()');
+      tokens = await _storage.getTokens();
+      AppLogger.w('🔥 HttpInterceptor: Finished _storage.getTokens()');
+    } catch (e, stackTrace) {
+      AppLogger.w(
+        'HttpInterceptor: Failed to read auth tokens from storage; proceeding without auth headers',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      handler.next(options);
+      return;
+    }
+
     if (tokens != null) {
       options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
     }
 
-    final csrf = await _storage.getCsrfToken();
-    if (csrf != null) {
-      options.headers['X-CSRF-Token'] = csrf;
+    try {
+      final csrf = await _storage.getCsrfToken();
+      if (csrf != null) {
+        options.headers['X-CSRF-Token'] = csrf;
+      }
+    } catch (e, stackTrace) {
+      AppLogger.w(
+        'HttpInterceptor: Failed to read CSRF token from storage; proceeding without CSRF header',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
 
     AppLogger.w('🔥 HttpInterceptor: Calling handler.next()');
@@ -69,11 +112,11 @@ class HttpInterceptor extends Interceptor {
     debugPrint('HttpInterceptor: error data: ${err.response?.data}');
     if (err.response?.statusCode == 401) {
       final path = err.requestOptions.path;
-      // Don't attempt refresh for auth endpoints themselves
-      if (path.contains('/api/auth/login') ||
-          path.contains('/api/auth/register') ||
-          path.contains('/api/auth/refresh')) {
-        AppLogger.d('HttpInterceptor: Skipping refresh for auth endpoint: $path');
+      final alreadyRetried = err.requestOptions.extra[_refreshRetriedKey] == true;
+      if (alreadyRetried) {
+        AppLogger.d('HttpInterceptor: Skipping refresh, request already retried: $path');
+      } else if (_shouldSkipRefreshPath(path)) {
+        AppLogger.d('HttpInterceptor: Skipping refresh for endpoint: $path');
       } else {
         AppLogger.w(
           'HttpInterceptor: 401 response received, attempting token refresh',
@@ -85,12 +128,16 @@ class HttpInterceptor extends Interceptor {
           );
           // Retry original request with new token
           final tokens = await _storage.getTokens();
+          final retryOptions = err.requestOptions.copyWith(
+            headers: Map<String, dynamic>.from(err.requestOptions.headers),
+            extra: Map<String, dynamic>.from(err.requestOptions.extra)
+              ..[_refreshRetriedKey] = true,
+          );
           if (tokens != null) {
-            err.requestOptions.headers['Authorization'] =
-                'Bearer ${tokens.accessToken}';
+            retryOptions.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
           }
           try {
-            final response = await _dio.fetch<dynamic>(err.requestOptions);
+            final response = await _dio.fetch<dynamic>(retryOptions);
             handler.resolve(response);
             return;
           } catch (e) {
