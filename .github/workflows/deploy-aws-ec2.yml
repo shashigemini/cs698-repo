@@ -175,6 +175,11 @@ jobs:
             sudo -u ubuntu git fetch origin main
             sudo -u ubuntu git reset --hard origin/main
             
+            echo "Updating environment variables..."
+            if ! grep -q "CORS_ORIGINS=" "$REPO_DIR/apps/backend/.env"; then
+              echo 'CORS_ORIGINS='\''["https://main.d3h75lrebnktpp.amplifyapp.com"]'\''' | sudo tee -a "$REPO_DIR/apps/backend/.env"
+            fi
+            
             echo "Cleaning up old Docker resources..."
             sudo docker system prune -af
             
