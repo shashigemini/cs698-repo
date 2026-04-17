@@ -28,6 +28,7 @@ class MockAuthRepository implements AuthRepository {
   final bool _useDelay;
 
   Future<void>? _initDefaults;
+  Future<void>? _initializeFuture;
 
   /// Creates a [MockAuthRepository].
   MockAuthRepository({
@@ -59,6 +60,24 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   String? get currentUserId => _currentUser;
+
+  @override
+  Future<void> initializeSession() {
+    _initializeFuture ??= _initializeSessionInternal();
+    return _initializeFuture!;
+  }
+
+  Future<void> _initializeSessionInternal() async {
+    await _initDefaults;
+    if (_useDelay) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    final tokens = await _storage.getTokens();
+    if (tokens != null) {
+      _currentUser ??= 'restored-mock-user';
+      _controller.add(_currentUser);
+    }
+  }
 
   @override
   Future<void> login(String email, String password) async {

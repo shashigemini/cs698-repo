@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/utils/app_logger.dart';
 import '../domain/repositories/auth_repository.dart';
@@ -25,34 +26,41 @@ class AuthInitialization extends _$AuthInitialization {
 @Riverpod(keepAlive: true)
 class AuthController extends _$AuthController {
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
+  bool _isInitializing = false;
 
   @override
   String? build() {
     final repo = ref.watch(authRepositoryProvider);
 
+    unawaited(_initializeOnce(repo));
+
     // Listen to repo for future updates
     final sub = repo.authStateChanges.listen((user) {
       state = user;
-      final initNotifier = ref.read(authInitializationProvider.notifier);
-      if (!ref.read(authInitializationProvider)) {
-        initNotifier.complete();
-      }
     });
 
     ref.onDispose(() {
       sub.cancel();
     });
 
-    // Mark initialization as complete immediately since initial state
-    // is known synchronously from the repository upon instantiation.
-    Future.microtask(() {
+    // Return the synchronous current state immediately
+    return repo.currentUserId;
+  }
+
+  Future<void> _initializeOnce(AuthRepository repo) async {
+    if (_isInitializing || ref.read(authInitializationProvider)) {
+      return;
+    }
+    _isInitializing = true;
+    try {
+      await repo.initializeSession();
+      state = repo.currentUserId;
+    } finally {
       if (!ref.read(authInitializationProvider)) {
         ref.read(authInitializationProvider.notifier).complete();
       }
-    });
-
-    // Return the synchronous current state immediately
-    return repo.currentUserId;
+      _isInitializing = false;
+    }
   }
 
   /// The current user ID.

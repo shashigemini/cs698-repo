@@ -32,6 +32,38 @@ class MockLoggedInAuthRepo extends MockAuthRepository {
   Stream<String?> get authStateChanges => Stream.value('test-user-id');
 }
 
+class DelayedInitAuthRepo extends MockAuthRepository {
+  DelayedInitAuthRepo({
+    required super.storage,
+    required super.crypto,
+    required super.sessionKeys,
+    required super.recovery,
+    required this.initCompleter,
+    this.restoredUserId,
+  });
+
+  final Completer<void> initCompleter;
+  final String? restoredUserId;
+  final StreamController<String?> _streamController =
+      StreamController<String?>.broadcast();
+
+  @override
+  Stream<String?> get authStateChanges => _streamController.stream;
+
+  @override
+  Future<void> initializeSession() async {
+    await initCompleter.future;
+    setUser(restoredUserId);
+    _streamController.add(restoredUserId);
+  }
+
+  @override
+  void dispose() {
+    _streamController.close();
+    super.dispose();
+  }
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -110,4 +142,53 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.byType(LoginScreen), findsNothing);
   });
+
+  testWidgets(
+    'Router does not redirect to login/home until restore finishes',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final initCompleter = Completer<void>();
+      final delayedRepo = DelayedInitAuthRepo(
+        storage: MockStorage(),
+        crypto: FakeCryptographyService(),
+        sessionKeys: MockSessionKeyStore(),
+        recovery: MockRecoveryService(),
+        initCompleter: initCompleter,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authRepositoryProvider.overrideWithValue(delayedRepo),
+        ],
+      );
+      addTearDown(() {
+        delayedRepo.dispose();
+        container.dispose();
+      });
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: Consumer(
+            builder: (context, ref, child) {
+              final router = ref.watch(goRouterProvider);
+              return MaterialApp.router(routerConfig: router);
+            },
+          ),
+        ),
+      );
+
+      // Startup tries to navigate after 2s, but auth initialization is pending.
+      await tester.pumpAndSettle(const Duration(seconds: 3));
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(find.byType(HomeScreen), findsNothing);
+      expect(find.text('Sacred Wisdom'), findsOneWidget);
+
+      // Completing restore should allow the router to make the auth decision.
+      initCompleter.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
+    },
+  );
 }
