@@ -65,7 +65,7 @@ void main() {
 
   testWidgets('Login shows timeout snackbar and clears loading', (tester) async {
     when(() => mockAuthRepository.login(any(), any())).thenAnswer((_) async {
-      await Future<void>.delayed(const Duration(seconds: 30));
+      await Future<void>.never();
     });
 
     await tester.pumpWidget(createSubject());
