@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -64,8 +65,9 @@ void main() {
   });
 
   testWidgets('Login shows timeout snackbar and clears loading', (tester) async {
+    final hangingLoginCompleter = Completer<void>();
     when(() => mockAuthRepository.login(any(), any())).thenAnswer((_) async {
-      await Future<void>.never();
+      await hangingLoginCompleter.future;
     });
 
     await tester.pumpWidget(createSubject());
