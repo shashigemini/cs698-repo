@@ -7,5 +7,21 @@ output "public_dns" {
 }
 
 output "backend_url" {
-  value = "http://${aws_instance.app_server.public_dns}:8000"
+  value = "${local.canonical_scheme}://${local.canonical_host}"
+}
+
+output "alb_dns_name" {
+  value = aws_lb.backend.dns_name
+}
+
+output "canonical_host" {
+  value = local.canonical_host
+}
+
+output "instance_id" {
+  value = aws_instance.app_server.id
+}
+
+output "instance_name" {
+  value = local.instance_name
 }
