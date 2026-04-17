@@ -35,15 +35,15 @@ final class GoRouterProvider
   /// unauthenticated users to `/login` and authenticated users
   /// away from the login page.
   GoRouterProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'goRouterProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'goRouterProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$goRouterHash();

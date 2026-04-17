@@ -22,15 +22,15 @@ final class IsAdminProvider extends $FunctionalProvider<bool, bool, bool>
   /// Provides whether the current authenticated user has admin
   /// privileges.
   IsAdminProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'isAdminProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isAdminProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$isAdminHash();
@@ -62,15 +62,15 @@ final adminControllerProvider = AdminControllerProvider._();
 final class AdminControllerProvider
     extends $NotifierProvider<AdminController, AsyncValue<void>> {
   AdminControllerProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'adminControllerProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'adminControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$adminControllerHash();
@@ -96,11 +96,14 @@ abstract class _$AdminController extends $Notifier<AsyncValue<void>> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, AsyncValue<void>>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<AsyncValue<void>, AsyncValue<void>>,
-        AsyncValue<void>,
-        Object?,
-        Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<void>, AsyncValue<void>>,
+              AsyncValue<void>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

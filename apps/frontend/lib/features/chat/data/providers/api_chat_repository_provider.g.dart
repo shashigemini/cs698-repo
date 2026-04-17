@@ -16,15 +16,15 @@ final class ApiChatRepositoryProvider
     extends $FunctionalProvider<ChatRepository, ChatRepository, ChatRepository>
     with $Provider<ChatRepository> {
   ApiChatRepositoryProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'apiChatRepositoryProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'apiChatRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$apiChatRepositoryHash();

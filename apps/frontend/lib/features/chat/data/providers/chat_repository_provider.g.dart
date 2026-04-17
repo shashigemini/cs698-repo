@@ -10,34 +10,31 @@ part of 'chat_repository_provider.dart';
 // ignore_for_file: type=lint, type=warning
 /// Provides the active [ChatRepository] implementation.
 ///
-/// Currently returns [MockChatRepository]; swap for a real
-/// implementation when the backend is available.
+/// Currently returns the live [ApiChatRepository] via delegation.
 
 @ProviderFor(chatRepository)
 final chatRepositoryProvider = ChatRepositoryProvider._();
 
 /// Provides the active [ChatRepository] implementation.
 ///
-/// Currently returns [MockChatRepository]; swap for a real
-/// implementation when the backend is available.
+/// Currently returns the live [ApiChatRepository] via delegation.
 
 final class ChatRepositoryProvider
     extends $FunctionalProvider<ChatRepository, ChatRepository, ChatRepository>
     with $Provider<ChatRepository> {
   /// Provides the active [ChatRepository] implementation.
   ///
-  /// Currently returns [MockChatRepository]; swap for a real
-  /// implementation when the backend is available.
+  /// Currently returns the live [ApiChatRepository] via delegation.
   ChatRepositoryProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'chatRepositoryProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'chatRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$chatRepositoryHash();
@@ -61,4 +58,4 @@ final class ChatRepositoryProvider
   }
 }
 
-String _$chatRepositoryHash() => r'c8fa8bde00c8be46211a71356368a7d80e28fc58';
+String _$chatRepositoryHash() => r'696a8f0a06c20118a78ae75351f331e68929cf87';

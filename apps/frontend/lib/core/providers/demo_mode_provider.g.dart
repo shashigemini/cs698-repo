@@ -15,15 +15,15 @@ final isDemoModeProvider = IsDemoModeProvider._();
 final class IsDemoModeProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   IsDemoModeProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'isDemoModeProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isDemoModeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$isDemoModeHash();

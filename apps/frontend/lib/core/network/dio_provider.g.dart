@@ -31,15 +31,15 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   /// tied to the Riverpod lifecycle, injected with the [StorageService]
   /// and [HttpInterceptor] for automatic token management.
   DioProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'dioProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'dioProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$dioHash();

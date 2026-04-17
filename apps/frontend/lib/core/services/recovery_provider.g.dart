@@ -12,18 +12,20 @@ part of 'recovery_provider.dart';
 @ProviderFor(recoveryService)
 final recoveryServiceProvider = RecoveryServiceProvider._();
 
-final class RecoveryServiceProvider extends $FunctionalProvider<RecoveryService,
-    RecoveryService, RecoveryService> with $Provider<RecoveryService> {
+final class RecoveryServiceProvider
+    extends
+        $FunctionalProvider<RecoveryService, RecoveryService, RecoveryService>
+    with $Provider<RecoveryService> {
   RecoveryServiceProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'recoveryServiceProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recoveryServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$recoveryServiceHash();

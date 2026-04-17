@@ -24,15 +24,15 @@ final class AuthInitializationProvider
   /// This prevents the [GoRouter] from prematurely redirecting to `/login`
   /// while tokens are still being loaded from secure storage.
   AuthInitializationProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'authInitializationProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authInitializationProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$authInitializationHash();
@@ -63,8 +63,14 @@ abstract class _$AuthInitialization extends $Notifier<bool> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<bool, bool>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<bool, bool>, bool, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }
@@ -88,15 +94,15 @@ final class AuthControllerProvider
   /// Converts the stream of auth state changes from the repository into
   /// Riverpod state, and exposes authentication actions to the UI.
   AuthControllerProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'authControllerProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$authControllerHash();
@@ -127,8 +133,14 @@ abstract class _$AuthController extends $Notifier<String?> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<String?, String?>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<String?, String?>, String?, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<String?, String?>,
+              String?,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

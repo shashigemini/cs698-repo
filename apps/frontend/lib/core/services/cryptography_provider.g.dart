@@ -15,21 +15,25 @@ final cryptographyServiceProvider = CryptographyServiceProvider._();
 
 /// Provider for [CryptographyService].
 
-final class CryptographyServiceProvider extends $FunctionalProvider<
-    CryptographyService,
-    CryptographyService,
-    CryptographyService> with $Provider<CryptographyService> {
+final class CryptographyServiceProvider
+    extends
+        $FunctionalProvider<
+          CryptographyService,
+          CryptographyService,
+          CryptographyService
+        >
+    with $Provider<CryptographyService> {
   /// Provider for [CryptographyService].
   CryptographyServiceProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'cryptographyServiceProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'cryptographyServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$cryptographyServiceHash();
@@ -37,8 +41,8 @@ final class CryptographyServiceProvider extends $FunctionalProvider<
   @$internal
   @override
   $ProviderElement<CryptographyService> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   CryptographyService create(Ref ref) {

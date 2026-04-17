@@ -15,19 +15,21 @@ final adminRepositoryProvider = AdminRepositoryProvider._();
 
 /// Provides the [AdminRepository] instance.
 
-final class AdminRepositoryProvider extends $FunctionalProvider<AdminRepository,
-    AdminRepository, AdminRepository> with $Provider<AdminRepository> {
+final class AdminRepositoryProvider
+    extends
+        $FunctionalProvider<AdminRepository, AdminRepository, AdminRepository>
+    with $Provider<AdminRepository> {
   /// Provides the [AdminRepository] instance.
   AdminRepositoryProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'adminRepositoryProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'adminRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$adminRepositoryHash();

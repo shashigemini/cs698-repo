@@ -32,15 +32,15 @@ final class StorageServiceProvider
   /// Can be overridden in tests or development environments
   /// to provide a mock implementation.
   StorageServiceProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'storageServiceProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'storageServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$storageServiceHash();

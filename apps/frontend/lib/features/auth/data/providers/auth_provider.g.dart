@@ -8,36 +8,27 @@ part of 'auth_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provides the active [AuthRepository] implementation.
-///
-/// Currently returns [MockAuthRepository]; swap for a real
-/// implementation when the backend is available.
+/// Currently returns [ApiAuthRepository].
 
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
 
-/// Provides the active [AuthRepository] implementation.
-///
-/// Currently returns [MockAuthRepository]; swap for a real
-/// implementation when the backend is available.
+/// Currently returns [ApiAuthRepository].
 
 final class AuthRepositoryProvider
     extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
     with $Provider<AuthRepository> {
-  /// Provides the active [AuthRepository] implementation.
-  ///
-  /// Currently returns [MockAuthRepository]; swap for a real
-  /// implementation when the backend is available.
+  /// Currently returns [ApiAuthRepository].
   AuthRepositoryProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'authRepositoryProvider',
-          isAutoDispose: false,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$authRepositoryHash();
@@ -61,4 +52,4 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'26ed2db08650e53f0c2e05bf49ed0bf7ffd96888';
+String _$authRepositoryHash() => r'cf3d1386a19ad6db742daecfdb6446d05f8fc971';
