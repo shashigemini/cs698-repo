@@ -51,14 +51,23 @@ jobs:
       - name: Terraform validate
         run: terraform validate
       - name: Terraform apply
+        env:
+          TF_STACK_ID: ${{ vars.TF_STACK_ID || secrets.TF_STACK_ID }}
         run: |
+          if [ -z "$TF_STACK_ID" ]; then
+            echo "Missing required repository variable/secret: TF_STACK_ID"
+            exit 1
+          fi
+
           terraform apply -auto-approve \
             -var "openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
             -var "csrf_secret=${{ secrets.CSRF_SECRET }}" \
             -var "jwt_private_key=${{ secrets.JWT_PRIVATE_KEY }}" \
             -var "jwt_public_key=${{ secrets.JWT_PUBLIC_KEY }}" \
             -var "ec2_key_name=${{ secrets.EC2_KEY_NAME }}" \
-            -var "repo_clone_url=https://github.com/${{ github.repository }}.git"
+            -var "repo_clone_url=https://github.com/${{ github.repository }}.git" \
+            -var "environment=prod" \
+            -var "stack_id=${TF_STACK_ID}"
       - name: Configure SSH key
         run: |
           install -m 600 -D /dev/null ~/.ssh/ec2_deploy_key
@@ -85,3 +94,8 @@ jobs:
         run: |
           BACKEND_URL="http://$(terraform output -raw public_ip):8000"
           curl -fsS "$BACKEND_URL/health/full"
+
+      - name: Show target instance
+        run: |
+          echo "Instance ID: $(terraform output -raw instance_id)"
+          echo "Instance Name: $(terraform output -raw instance_name)"

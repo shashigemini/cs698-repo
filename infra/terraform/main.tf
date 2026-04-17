@@ -28,6 +28,23 @@ variable "repo_clone_url" {
   type        = string
 }
 
+variable "environment" {
+  description = "Deployment environment name used for resource naming and tagging"
+  type        = string
+  default     = "dev"
+}
+
+variable "stack_id" {
+  description = "Short stable stack identifier used to make names unique across deployments"
+  type        = string
+  default     = "core"
+}
+
+# --- Naming ---
+locals {
+  instance_name = "cs698-${var.environment}-app-${var.stack_id}"
+}
+
 # --- VPC ---
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -113,5 +130,10 @@ resource "aws_instance" "app_server" {
     REPO_CLONE_URL  = var.repo_clone_url
   })
 
-  tags = { Name = "cs698-app-server" }
+  tags = {
+    Name        = local.instance_name
+    ManagedBy   = "Terraform"
+    Repo        = var.repo_clone_url
+    Environment = var.environment
+  }
 }
