@@ -223,6 +223,54 @@ void main() {
 
       verify(() => handler.reject(any())).called(1);
     });
+
+    test('onError does not attempt refresh for csrf endpoint', () async {
+      final err = DioException(
+        requestOptions: RequestOptions(path: '/api/csrf'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/csrf'),
+          statusCode: 401,
+        ),
+      );
+      final handler = MockErrorInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onError(err, handler);
+
+      verifyNever(
+        () => mockRefreshDio.post<Map<String, dynamic>>(
+          any(),
+          data: any(named: 'data'),
+        ),
+      );
+      verify(() => handler.next(err)).called(1);
+    });
+
+    test('onError does not refresh when request was already retried', () async {
+      final requestOptions = RequestOptions(
+        path: '/api/protected',
+        extra: {'refresh_retried': true},
+      );
+      final err = DioException(
+        requestOptions: requestOptions,
+        response: Response(
+          requestOptions: requestOptions,
+          statusCode: 401,
+        ),
+      );
+      final handler = MockErrorInterceptorHandler();
+      when(() => handler.next(any())).thenReturn(null);
+
+      await interceptor.onError(err, handler);
+
+      verifyNever(
+        () => mockRefreshDio.post<Map<String, dynamic>>(
+          any(),
+          data: any(named: 'data'),
+        ),
+      );
+      verify(() => handler.next(err)).called(1);
+    });
   });
 }
 
