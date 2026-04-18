@@ -22,7 +22,6 @@ applications:
               SSL_CERT_FINGERPRINT=${SSL_CERT_FINGERPRINT:-DUMMY_FINGERPRINT}
               USE_SSL_PINNING=${USE_SSL_PINNING:-false}
               EOF
-            - flutter create . --platforms web
             - dart run build_runner build --delete-conflicting-outputs
         build:
           commands:

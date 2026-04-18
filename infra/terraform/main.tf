@@ -58,6 +58,25 @@ variable "stack_id" {
   default     = "core"
 }
 
+variable "frontend_origin" {
+  description = "Amplify app HTTPS origin for CORS (e.g. https://main.abc123.amplifyapp.com). Set after first Amplify deploy."
+  type        = string
+  default     = ""
+}
+
+variable "api_base_url" {
+  description = "Backend HTTPS URL for the Amplify frontend (e.g. https://api.example.com). Set after backend is deployed."
+  type        = string
+  default     = "http://localhost:8000"
+}
+
+variable "github_token" {
+  description = "GitHub personal access token (repo scope) for Amplify to pull the repo"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 locals {
   instance_name         = "cs698-${var.environment}-app-${var.stack_id}"
   enable_https_listener = var.acm_certificate_arn != ""
@@ -216,11 +235,12 @@ resource "aws_instance" "app_server" {
   }
 
   user_data = templatefile("${path.module}/scripts/install_docker.sh", {
-    OPENAI_API_KEY  = var.openai_api_key
-    CSRF_SECRET     = var.csrf_secret
-    JWT_PRIVATE_KEY = var.jwt_private_key
-    JWT_PUBLIC_KEY  = var.jwt_public_key
-    REPO_CLONE_URL  = var.repo_clone_url
+    OPENAI_API_KEY   = var.openai_api_key
+    CSRF_SECRET      = var.csrf_secret
+    JWT_PRIVATE_KEY  = var.jwt_private_key
+    JWT_PUBLIC_KEY   = var.jwt_public_key
+    REPO_CLONE_URL   = var.repo_clone_url
+    FRONTEND_ORIGIN  = var.frontend_origin
   })
 
   tags = {
@@ -269,8 +289,12 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
@@ -279,7 +303,7 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.backend.arn
   port              = 443
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
   certificate_arn   = var.acm_certificate_arn
 
   default_action {

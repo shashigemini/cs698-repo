@@ -25,6 +25,12 @@ jobs:
           python-version: "3.11"
       - name: Install Poetry
         run: pip install poetry
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('apps/backend/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
       - name: Install dependencies
         run: poetry install --with dev --no-interaction
       - name: Lint (block only syntax/runtime-critical issues)

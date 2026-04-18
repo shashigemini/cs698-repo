@@ -23,16 +23,18 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('apps/frontend/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
       - name: Enable platforms
         run: |
           flutter config --enable-web
           flutter config --enable-linux-desktop
       - name: Install dependencies
         run: flutter pub get
-      - name: Initialize project configuration
-        run: |
-          flutter create . --platforms web,linux
-          rm -f test/widget_test.dart
       - name: Generate env for CI
         run: |
           cat <<EOF > .env

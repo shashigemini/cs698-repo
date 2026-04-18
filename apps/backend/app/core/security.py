@@ -10,9 +10,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from jose import JWTError, jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from jose import JWTError, jwt
 
 from app.config import Settings
 from app.core.exceptions import TokenError
@@ -67,9 +67,6 @@ def create_access_token(
         **(extra_claims or {}),
     }
 
-    # DEBUG: Inspect the private key string for MalformedFraming issues
-    print(f"DEBUG: JWT PRIVATE KEY: {repr(settings.jwt_private_key)}")
-    
     token = jwt.encode(
         payload,
         settings.jwt_private_key,
@@ -120,6 +117,7 @@ def decode_token(
         TokenError: If the token is invalid, expired, or wrong type.
     """
     import logging
+
     logger = logging.getLogger(__name__)
     try:
         payload = jwt.decode(
@@ -128,14 +126,19 @@ def decode_token(
             algorithms=[settings.jwt_algorithm],
         )
     except JWTError as e:
-        logger.error(f"JWT Validation Error: {e}, Token: {token[:20]}..., Alg: {settings.jwt_algorithm}")
+        logger.error(
+            "JWT Validation Error: %s, Token: %s..., Alg: %s",
+            e,
+            token[:20],
+            settings.jwt_algorithm,
+        )
         raise TokenError(f"Invalid token: {e}") from e
 
     if payload.get("type") != expected_type:
-        logger.error(f"Token type mismatch: expected {expected_type}, got {payload.get('type')}")
-        raise TokenError(
-            f"Expected {expected_type} token, got {payload.get('type')}"
+        logger.error(
+            f"Token type mismatch: expected {expected_type}, got {payload.get('type')}"
         )
+        raise TokenError(f"Expected {expected_type} token, got {payload.get('type')}")
 
     return payload
 

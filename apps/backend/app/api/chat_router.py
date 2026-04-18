@@ -8,12 +8,11 @@ from fastapi import APIRouter, Query, Request, Response
 
 from app.config import get_settings
 from app.dependencies import (
-    AuthSvc,
+    ClientIP,
     CurrentUser,
     DbSession,
     OptionalUser,
     RateLimitSvc,
-    ClientIP,
 )
 from app.schemas.chat_schemas import (
     ConversationSummary,
@@ -63,10 +62,10 @@ async def chat_query(
         user_id=user["sub"] if user else None,
         conversation_id=body.conversation_id,
     )
-    
+
     if guest_remaining is not None:
         result.guest_queries_remaining = guest_remaining
-        
+
     return result
 
 
@@ -74,13 +73,10 @@ async def chat_query(
 async def list_conversations(
     user: CurrentUser,
     session: DbSession,
-    request: Request,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> list[ConversationSummary]:
     """List all conversations for the authenticated user."""
-    auth_header = request.headers.get("Authorization")
-    print(f"DEBUG AUTH: Authorization='{auth_header}' user_sub='{user.get('sub')}'", flush=True)
     service = ConversationService(session)
     return await service.list_conversations(user["sub"], limit=limit, offset=offset)
 
@@ -125,6 +121,4 @@ async def export_conversation(
 ) -> ExportResponse:
     """Export a conversation as formatted Markdown."""
     service = ConversationService(session)
-    return await service.export_conversation(
-        user["sub"], conversation_id
-    )
+    return await service.export_conversation(user["sub"], conversation_id)
