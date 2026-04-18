@@ -64,6 +64,7 @@ e2e_*.log
 e2e_*.json
 *_screenshot.png
 *.html
+!apps/frontend/web/index.html
 
 # Security — never commit keys or sensitive data
 *.pem

@@ -61,6 +61,8 @@ app.*.map.json
 *.json
 !pubspec.yaml
 !analysis_options.yaml
+!web/index.html
+!web/manifest.json
 # Removed !test_results.json to ensure it is ignored by the global *.json rule.
 
 # Environment Variables
