@@ -18,6 +18,7 @@ class Retriever:
         self._client = AsyncQdrantClient(
             host=settings.qdrant_host,
             port=settings.qdrant_port,
+            check_compatibility=False,
         )
         self._collection = settings.qdrant_collection
         self._top_k = settings.rag_top_k
@@ -41,18 +42,19 @@ class Retriever:
             List of passage dicts with text, metadata, and score.
         """
         try:
-            results = await self._client.search(
+            response = await self._client.query_points(
                 collection_name=self._collection,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=top_k or self._top_k,
                 score_threshold=threshold or self._threshold,
+                with_payload=True,
             )
         except Exception as e:
             logger.error("Qdrant search failed: %s", e)
             raise RetrievalError("Document search service unavailable") from e
 
         passages = []
-        for hit in results:
+        for hit in response.points:
             payload = hit.payload or {}
             passages.append(
                 {

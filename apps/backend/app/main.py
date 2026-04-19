@@ -98,7 +98,9 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
         settings.qdrant_port,
     )
     qclient = AsyncQdrantClient(
-        host=settings.qdrant_host, port=settings.qdrant_port
+        host=settings.qdrant_host,
+        port=settings.qdrant_port,
+        check_compatibility=False,
     )
 
     _max_attempts = 10

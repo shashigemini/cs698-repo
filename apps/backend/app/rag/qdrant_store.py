@@ -20,6 +20,7 @@ class QdrantStore:
         self._client = AsyncQdrantClient(
             host=settings.qdrant_host,
             port=settings.qdrant_port,
+            check_compatibility=False,
         )
         self._collection = settings.qdrant_collection
 

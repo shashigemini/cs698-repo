@@ -38,16 +38,16 @@ services:
         tag: "{{.Name}}"
 
   qdrant:
-    image: qdrant/qdrant:v1.9.2
+    image: qdrant/qdrant:v1.13.6
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
-    # Removed healthcheck due to missing curl in base image and corruption issues
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     logging:
       driver: awslogs
       options:
@@ -73,9 +73,12 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     depends_on:
-      - postgres
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
