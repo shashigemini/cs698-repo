@@ -26,4 +26,13 @@ abstract class StorageService {
 
   /// Retrieves the stored CSRF token.
   Future<String?> getCsrfToken();
+
+  /// Persists the user's role (e.g. 'admin' or 'user').
+  Future<void> saveUserRole(String role);
+
+  /// Retrieves the stored user role, or `null` if none exists.
+  Future<String?> getUserRole();
+
+  /// Removes stored user role (e.g. on logout).
+  Future<void> deleteUserRole();
 }

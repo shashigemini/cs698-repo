@@ -21,6 +21,7 @@ class SecureStorageService implements StorageService {
   static const _keyAccessExpiresAt = 'access_expires_at';
   static const _keyGuestSessionId = 'guest_session_id';
   static const _keyCsrfToken = 'csrf_token';
+  static const _keyUserRole = 'user_role';
 
   @override
   Future<void> saveTokens(TokenPair tokenPair) async {
@@ -62,6 +63,7 @@ class SecureStorageService implements StorageService {
       _storage.delete(key: _keyAccessToken),
       _storage.delete(key: _keyRefreshToken),
       _storage.delete(key: _keyAccessExpiresAt),
+      _storage.delete(key: _keyUserRole),
     ]);
   }
 
@@ -83,5 +85,20 @@ class SecureStorageService implements StorageService {
   @override
   Future<String?> getCsrfToken() async {
     return _storage.read(key: _keyCsrfToken);
+  }
+
+  @override
+  Future<void> saveUserRole(String role) async {
+    await _storage.write(key: _keyUserRole, value: role);
+  }
+
+  @override
+  Future<String?> getUserRole() async {
+    return _storage.read(key: _keyUserRole);
+  }
+
+  @override
+  Future<void> deleteUserRole() async {
+    await _storage.delete(key: _keyUserRole);
   }
 }
