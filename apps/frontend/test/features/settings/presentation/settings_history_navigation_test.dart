@@ -92,6 +92,19 @@ void main() {
   });
 
   Future<void> pumpSettingsWithRouter(WidgetTester tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(mockAuthRepo),
+        chatRepositoryProvider.overrideWithValue(mockChatRepo),
+        storageServiceProvider.overrideWithValue(mockStorage),
+        adminRepositoryProvider.overrideWithValue(mockAdminRepo),
+        fileHelperProvider.overrideWithValue(mockFileHelper),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
+    addTearDown(container.dispose);
+
     final router = GoRouter(
       initialLocation: '/settings',
       routes: [
@@ -108,17 +121,8 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(mockAuthRepo),
-          chatRepositoryProvider.overrideWithValue(mockChatRepo),
-          storageServiceProvider.overrideWithValue(mockStorage),
-          adminRepositoryProvider.overrideWithValue(mockAdminRepo),
-          fileHelperProvider.overrideWithValue(mockFileHelper),
-          sharedPreferencesProvider.overrideWithValue(
-            await SharedPreferences.getInstance(),
-          ),
-        ],
+      UncontrolledProviderScope(
+        container: container,
         child: MaterialApp.router(routerConfig: router),
       ),
     );
@@ -153,6 +157,7 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => mockChatRepo.exportConversation(conversationId)).called(1);
+    verifyNever(() => mockChatRepo.loadHistory(any()));
     expect(find.byKey(const ValueKey('home')), findsNothing);
     expect(find.byType(SettingsScreen), findsOneWidget);
 
@@ -160,6 +165,7 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => mockChatRepo.deleteConversation(conversationId)).called(1);
+    verifyNever(() => mockChatRepo.loadHistory(any()));
     expect(find.byKey(const ValueKey('home')), findsNothing);
     expect(find.byType(SettingsScreen), findsOneWidget);
   });
