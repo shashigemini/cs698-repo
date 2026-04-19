@@ -155,21 +155,17 @@ def create_app() -> FastAPI:
         )
 
     # CORS — restricted to configured origins
+    logger.info("Configured CORS origins: %s", settings.cors_origins)
     cors_kwargs: dict[str, typing.Any] = {
         "allow_origins": settings.cors_origins,
         "allow_credentials": True,
         "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": [
-            "Authorization",
-            "Content-Type",
-            "X-CSRF-Token",
-            "X-Request-ID",
-        ],
+        "allow_headers": ["*"],  # Allow all headers in production to prevent preflight blocks
         "expose_headers": ["X-Request-ID"],
     }
-    if not settings.is_production:
-        cors_kwargs["allow_origin_regex"] = r"^https?://(localhost|127\.0\.0\.1|host\.docker\.internal|.*github\.dev)(:[0-9]+)?$"
-        cors_kwargs["allow_headers"] = ["*"]
+    
+    # Always allow Amplify subdomains and localhost/dev environments
+    cors_kwargs["allow_origin_regex"] = r"^https?://(localhost|127\.0\.0\.1|.*\.amplifyapp\.com|.*\.cloudfront\.net|.*github\.dev)(:[0-9]+)?$"
         
     app.add_middleware(CORSMiddleware, **cors_kwargs)
 
