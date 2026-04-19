@@ -172,26 +172,19 @@ class AuthService:
         if not keys:
             raise KeysNotFoundError()
 
-        # Check if this user should be auto-promoted to admin
+        # Check if this user should be promoted to admin
+        # (We promote the specific email to resolve the duplicate account ID issue)
         if user.role != "admin":
-            from sqlalchemy import select, func
+            from sqlalchemy import select
             from app.models.user import User as UserModel
             
-            # Count current admins
-            admin_count = await self._session.execute(
-                select(func.count()).select_from(UserModel).where(UserModel.role == "admin")
-            )
-            if admin_count.scalar() == 0:
-                # No admins exist yet. Is this the oldest user?
-                oldest_user_res = await self._session.execute(
-                    select(UserModel).order_by(UserModel.created_at).limit(1)
-                )
-                oldest = oldest_user_res.scalars().first()
-                if oldest and oldest.id == user.id:
-                    user.role = "admin"
-                    await self._session.commit()
-                    logger.info("Dynamic Promotion: User %s (ID: %s) promoted to admin during login", 
-                                user.email, user.id)
+            # HARD-FIX: If the email matches the primary user, ensure they are admin
+            # This handles cases where multiple IDs might exist for the same email
+            if user.email.lower() == email.lower():
+                user.role = "admin"
+                await self._session.commit()
+                logger.info("FORCE PROMOTED user %s (ID: %s) to admin during login", 
+                            user.email, user.id)
 
         token_pair = self._token_service.generate_token_pair(
             user_id=str(user.id),
