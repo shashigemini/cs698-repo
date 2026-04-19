@@ -31,6 +31,11 @@ output "amplify_app_url" {
   value       = "https://main.${aws_amplify_app.frontend.default_domain}"
 }
 
+output "cloudfront_url" {
+  description = "HTTPS CloudFront URL fronting the ALB backend"
+  value       = "https://${aws_cloudfront_distribution.api.domain_name}"
+}
+
 output "amplify_webhook_url" {
   description = "Set this as AMPLIFY_PROD_WEBHOOK_URL GitHub secret to enable deploy-aws-amplify.yml"
   value       = aws_amplify_webhook.main.url

@@ -8,7 +8,7 @@ resource "aws_amplify_app" "frontend" {
   enable_branch_auto_deletion = false
 
   environment_variables = {
-    API_BASE_URL          = var.api_base_url
+    API_BASE_URL          = "https://${aws_cloudfront_distribution.api.domain_name}"
     ANDROID_PACKAGE_NAME  = "com.shashigemini.cs698repo"
     ANDROID_CERT_HASH     = "DUMMY_HASH"
     IOS_BUNDLE_ID         = "com.shashigemini.cs698repo"
