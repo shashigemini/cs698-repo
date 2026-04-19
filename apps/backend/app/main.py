@@ -86,38 +86,63 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
                 logger.error("Failed to seed debug users: %s", e)
             break
 
-    # Qdrant initialization continues below...
+    # Initialize Qdrant Collection (with readiness retry)
+    import asyncio
 
-    # Initialize Qdrant Collection
-    try:
-        from qdrant_client import AsyncQdrantClient
-        from qdrant_client.models import Distance, VectorParams
+    from qdrant_client import AsyncQdrantClient
+    from qdrant_client.models import Distance, VectorParams
 
-        logger.info(
-            "Initializing Qdrant client at %s:%s",
-            settings.qdrant_host,
-            settings.qdrant_port,
-        )
-        qclient = AsyncQdrantClient(
-            host=settings.qdrant_host, port=settings.qdrant_port
-        )
+    logger.info(
+        "Initializing Qdrant client at %s:%s",
+        settings.qdrant_host,
+        settings.qdrant_port,
+    )
+    qclient = AsyncQdrantClient(
+        host=settings.qdrant_host, port=settings.qdrant_port
+    )
 
-        exists = await qclient.collection_exists(settings.qdrant_collection)
-        if not exists:
-            logger.info("Creating Qdrant collection: %s", settings.qdrant_collection)
-            await qclient.create_collection(
-                collection_name=settings.qdrant_collection,
-                vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
-            )
-            logger.info(
-                "Successfully created Qdrant collection: %s", settings.qdrant_collection
-            )
-        else:
-            logger.info(
-                "Qdrant collection %s already exists", settings.qdrant_collection
-            )
-    except Exception as e:
-        logger.error("Failed to initialize Qdrant collection: %s", e)
+    _max_attempts = 10
+    _retry_delay = 2.0
+    for _attempt in range(1, _max_attempts + 1):
+        try:
+            exists = await qclient.collection_exists(settings.qdrant_collection)
+            if not exists:
+                logger.info(
+                    "Creating Qdrant collection: %s", settings.qdrant_collection
+                )
+                await qclient.create_collection(
+                    collection_name=settings.qdrant_collection,
+                    vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
+                )
+                logger.info(
+                    "Successfully created Qdrant collection: %s",
+                    settings.qdrant_collection,
+                )
+            else:
+                logger.info(
+                    "Qdrant collection '%s' already exists",
+                    settings.qdrant_collection,
+                )
+            app.state.qdrant = qclient
+            break
+        except Exception as e:
+            if _attempt == _max_attempts:
+                logger.error(
+                    "Qdrant not available after %d attempts — "
+                    "document search will be unavailable: %s",
+                    _max_attempts,
+                    e,
+                )
+                app.state.qdrant = None
+            else:
+                logger.warning(
+                    "Qdrant not ready (attempt %d/%d): %s — retrying in %.0fs",
+                    _attempt,
+                    _max_attempts,
+                    e,
+                    _retry_delay,
+                )
+                await asyncio.sleep(_retry_delay)
 
     # Start token cleanup background task
     from app.services.token_cleanup import TokenCleanupTask
