@@ -115,8 +115,8 @@ class ApiAuthRepository implements AuthRepository {
       await _storage.saveUserRole(role);
       _currentRole = role;
 
-      _currentUser = 'auth-user';
       _currentEmail = email;
+      _currentUser = _currentEmail;
       _controller.add(_currentUser);
       AppLogger.i('ApiAuthRepository: Login Successful');
     } on DioException catch (e) {
@@ -179,8 +179,8 @@ class ApiAuthRepository implements AuthRepository {
       await _storage.saveUserRole(role);
       _currentRole = role;
 
-      _currentUser = 'new-user';
       _currentEmail = email;
+      _currentUser = _currentEmail;
 
       AppLogger.i('ApiAuthRepository: Registration Successful');
       return recoveryMnemonic;
