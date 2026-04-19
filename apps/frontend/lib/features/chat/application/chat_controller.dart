@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/services/local_settings_store.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/services/guest_service.dart';
@@ -47,8 +49,26 @@ class ChatController extends _$ChatController {
         conversations = await repo.getConversations();
       }
 
+      var guestMessages = <Message>[];
+      if (authState == AppStrings.guestUserId) {
+        final store = ref.read(localSettingsStoreProvider);
+        final jsonStr = store.getGuestMessages();
+        if (jsonStr != null) {
+          try {
+            final list = jsonDecode(jsonStr) as List<dynamic>;
+            guestMessages =
+                list
+                    .map((e) => Message.fromJson(e as Map<String, dynamic>))
+                    .toList();
+          } catch (e) {
+            AppLogger.e('ChatController: Failed to decode guest messages', error: e);
+          }
+        }
+      }
+
       if (ref.mounted) {
         state = ChatState(
+          messages: guestMessages,
           guestQueriesRemaining: guestService.getQueriesRemaining(),
           recentConversations: conversations,
           queryUsage: conversations.length,
@@ -125,6 +145,12 @@ class ChatController extends _$ChatController {
         isLoading: false,
         guestQueriesRemaining: guestService.getQueriesRemaining(),
       );
+
+      if (guestSessionId != null) {
+        final store = ref.read(localSettingsStoreProvider);
+        final jsonStr = jsonEncode(state.messages.map((e) => e.toJson()).toList());
+        await store.saveGuestMessages(jsonStr);
+      }
 
       if (isNewConversation && guestSessionId == null) {
         await fetchRecentConversations();
@@ -207,6 +233,11 @@ class ChatController extends _$ChatController {
   }
 
   void newConversation() {
+    final authState = ref.read(authControllerProvider);
+    if (authState == AppStrings.guestUserId) {
+      final store = ref.read(localSettingsStoreProvider);
+      store.clearGuestMessages();
+    }
     state = state.copyWith(
       messages: [],
       conversationId: null,

@@ -22,6 +22,7 @@ class LocalSettingsStore {
 
   static const _guestQueryCountKey = 'guestQueryCount';
   static const _lastQueryDateKey = 'lastQueryDate';
+  static const _guestMessagesKey = 'guestMessages';
 
   /// Persists the guest query count.
   Future<void> saveGuestQueryCount(int count) async {
@@ -43,6 +44,21 @@ class LocalSettingsStore {
     final dateStr = _prefs.getString(_lastQueryDateKey);
     if (dateStr == null) return null;
     return DateTime.tryParse(dateStr);
+  }
+
+  /// Persists guest messages.
+  Future<void> saveGuestMessages(String messagesJson) async {
+    await _prefs.setString(_guestMessagesKey, messagesJson);
+  }
+
+  /// Retrieves guest messages.
+  String? getGuestMessages() {
+    return _prefs.getString(_guestMessagesKey);
+  }
+
+  /// Clears guest messages.
+  Future<void> clearGuestMessages() async {
+    await _prefs.remove(_guestMessagesKey);
   }
 }
 

@@ -16,7 +16,9 @@ class AppTheme {
   static const Color fuchsia500 = Color(0xFFD946EF); // Fuchsia-500
 
   static const Color gray900 = Color(0xFF111827);
+  static const Color gray800 = Color(0xFF1F2937);
   static const Color gray700 = Color(0xFF374151);
+  static const Color gray600 = Color(0xFF4B5563);
   static const Color gray200 = Color(0xFFE5E7EB);
   static const Color purple300 = Color(0xFFD8B4FE);
 
@@ -49,6 +51,7 @@ class AppTheme {
     textTheme: GoogleFonts.interTextTheme().apply(
       bodyColor: gray900,
       displayColor: gray900,
+      decorationColor: gray900,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -65,6 +68,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: teal500, width: 2),
       ),
+      hintStyle: const TextStyle(color: gray600),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(

@@ -206,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 8),
               Text(
                 AppStrings.tagline,
-                style: GoogleFonts.inter(fontSize: 16, color: AppTheme.gray700),
+                style: GoogleFonts.inter(fontSize: 16, color: AppTheme.gray800),
               ),
               const SizedBox(height: 48),
 
@@ -351,7 +351,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             AppStrings.orDivider,
                             style: GoogleFonts.inter(
                               fontSize: 12,
-                              color: AppTheme.gray700,
+                              color: AppTheme.gray800,
                             ),
                           ),
                         ),
@@ -375,7 +375,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         AppStrings.continueAsGuest,
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.gray700,
+                          color: AppTheme.gray800,
                         ),
                       ),
                     ),
@@ -387,7 +387,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           AppStrings.guestQueryLimitLabel,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: AppTheme.gray700,
+                            color: AppTheme.gray800,
                           ),
                         ),
                       ),
@@ -422,7 +422,7 @@ class _LoginTab extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -440,7 +440,7 @@ class _LoginTab extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontWeight: FontWeight.w600,
-              color: isSelected ? AppTheme.gray900 : AppTheme.gray700,
+              color: isSelected ? AppTheme.gray900 : AppTheme.gray800,
             ),
           ),
         ),
@@ -479,7 +479,7 @@ class _LoginTextField extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: AppTheme.gray700,
+            color: AppTheme.gray800,
           ),
         ),
         const SizedBox(height: 8),
@@ -490,13 +490,13 @@ class _LoginTextField extends StatelessWidget {
           style: GoogleFonts.inter(color: Colors.black),
           decoration: InputDecoration(
             hintText: isPassword ? '••••••••' : 'you@example.com',
-            prefixIcon: Icon(icon, size: 20, color: AppTheme.gray700),
+            prefixIcon: Icon(icon, size: 20, color: AppTheme.gray800),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
                       obscureText ? LucideIcons.eye : LucideIcons.eyeOff,
                       size: 20,
-                      color: AppTheme.gray700,
+                      color: AppTheme.gray800,
                     ),
                     onPressed: onToggleObscure,
                   )
