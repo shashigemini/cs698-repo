@@ -36,6 +36,7 @@ class MockStorageService implements StorageService {
     _store.remove('refreshToken');
     _store.remove('accessExpiresAt');
     _store.remove('userRole');
+    _store.remove('userEmail');
   }
 
   @override
@@ -64,6 +65,16 @@ class MockStorageService implements StorageService {
   }
 
   @override
+  Future<void> saveUserEmail(String email) async {
+    _store['userEmail'] = email;
+  }
+
+  @override
+  Future<String?> getUserEmail() async {
+    return _store['userEmail'];
+  }
+
+  @override
   Future<String?> getUserRole() async {
     return _store['userRole'];
   }
@@ -71,6 +82,11 @@ class MockStorageService implements StorageService {
   @override
   Future<void> deleteUserRole() async {
     _store.remove('userRole');
+  }
+
+  @override
+  Future<void> deleteUserEmail() async {
+    _store.remove('userEmail');
   }
 
   /// Clears all stored data.

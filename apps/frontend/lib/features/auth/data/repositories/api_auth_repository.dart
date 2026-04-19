@@ -20,7 +20,8 @@ class ApiAuthRepository implements AuthRepository {
   final SessionKeyStore _sessionKeys;
   final StorageService _storage;
   final RecoveryService _recovery;
-  final StreamController<String?> _controller = StreamController<String?>.broadcast();
+  final StreamController<String?> _controller =
+      StreamController<String?>.broadcast();
 
   String? _currentUser;
   String? _currentEmail;
@@ -32,29 +33,35 @@ class ApiAuthRepository implements AuthRepository {
     required SessionKeyStore sessionKeys,
     required StorageService storage,
     required RecoveryService recovery,
-  })  : _dio = dio,
-        _crypto = crypto,
-        _sessionKeys = sessionKeys,
-        _storage = storage,
-        _recovery = recovery {
+  }) : _dio = dio,
+       _crypto = crypto,
+       _sessionKeys = sessionKeys,
+       _storage = storage,
+       _recovery = recovery {
     _initRestoreSession();
   }
 
   Future<void> _initRestoreSession() async {
     try {
-      AppLogger.i('ApiAuthRepository: Initializing session restoration using ${_storage.runtimeType}');
+      AppLogger.i(
+        'ApiAuthRepository: Initializing session restoration using ${_storage.runtimeType}',
+      );
       // Basic restore — actual E2EE key restoration would happen in a higher coordinator,
       // but for e2e tests we might not strictly need it during initial boot if the test handles login.
       final tokens = await _storage.getTokens();
-      final hasTokens = tokens != null;
-      if (hasTokens) {
+      if (tokens != null) {
         AppLogger.i('ApiAuthRepository: Restored session from storage');
-        _currentUser = 'restored-user';
+        _currentEmail =
+            await _storage.getUserEmail() ??
+            _extractEmailFromJwt(tokens.accessToken);
+        _currentUser = _currentEmail;
         _currentRole = await _storage.getUserRole();
         _controller.add(_currentUser);
       }
     } catch (e) {
-      AppLogger.w('ApiAuthRepository: Failed to restore session from storage (expected on Linux E2E if Libsecret fails): $e');
+      AppLogger.w(
+        'ApiAuthRepository: Failed to restore session from storage (expected on Linux E2E if Libsecret fails): $e',
+      );
     }
   }
 
@@ -76,7 +83,7 @@ class ApiAuthRepository implements AuthRepository {
         '/api/auth/login',
         data: <String, dynamic>{'email': email},
       );
-      
+
       final saltBase64 = challengeResponse.data!['salt'] as String;
       // [CRITICAL] Salt from server is URL-safe base64. Standard decode might fail.
       final saltBytes = base64Url.decode(saltBase64);
@@ -93,7 +100,7 @@ class ApiAuthRepository implements AuthRepository {
 
       final tokenData = TokenResponseDto.fromJson(verifyResponse.data!);
       final wrappedAk = verifyResponse.data!['wrapped_account_key'] as String;
-      
+
       // Decrypt Account Key
       final ak = await _crypto.unwrapKey(wrappedAk, lmk);
 
@@ -116,7 +123,8 @@ class ApiAuthRepository implements AuthRepository {
       _currentRole = role;
 
       _currentEmail = email;
-      _currentUser = _currentEmail;
+      _currentUser = email;
+      await _storage.saveUserEmail(email);
       _controller.add(_currentUser);
       AppLogger.i('ApiAuthRepository: Login Successful');
     } on DioException catch (e) {
@@ -134,7 +142,7 @@ class ApiAuthRepository implements AuthRepository {
       final saltBytes = List<int>.generate(16, (i) => i);
       final lmk = await _crypto.deriveLocalMasterKey(password, saltBytes);
       final authToken = await _crypto.deriveAuthToken(lmk);
-      
+
       final ak = await _crypto.generateRandomKey();
       final wrappedAk = await _crypto.wrapKey(ak, lmk);
 
@@ -157,13 +165,16 @@ class ApiAuthRepository implements AuthRepository {
       );
 
       // Send to backend
-      final res = await _dio.post<Map<String, dynamic>>('/api/auth/register', data: req.toJson());
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/api/auth/register',
+        data: req.toJson(),
+      );
       final tokenData = TokenResponseDto.fromJson(res.data!);
 
       // Save locally but DO NOT emit auth state yet (waiting for finalize)
       _sessionKeys.setMasterKey(lmk);
       _sessionKeys.setAccountKey(ak);
-      
+
       await _storage.saveTokens(
         TokenPair(
           accessToken: tokenData.accessToken,
@@ -180,11 +191,11 @@ class ApiAuthRepository implements AuthRepository {
       _currentRole = role;
 
       _currentEmail = email;
-      _currentUser = _currentEmail;
+      _currentUser = email;
+      await _storage.saveUserEmail(email);
 
       AppLogger.i('ApiAuthRepository: Registration Successful');
       return recoveryMnemonic;
-
     } on DioException catch (e) {
       _handleDioError(e);
       rethrow;
@@ -206,7 +217,9 @@ class ApiAuthRepository implements AuthRepository {
         '/api/auth/login',
         data: <String, dynamic>{'email': _currentEmail},
       );
-      final saltBytes = base64.decode(challengeResponse.data!['salt'] as String);
+      final saltBytes = base64.decode(
+        challengeResponse.data!['salt'] as String,
+      );
 
       // Verify old password
       final oldLmk = await _crypto.deriveLocalMasterKey(oldPassword, saltBytes);
@@ -230,12 +243,14 @@ class ApiAuthRepository implements AuthRepository {
         newWrappedAccountKey: newWrappedAk,
       );
 
-      await _dio.post<Map<String, dynamic>>('/api/auth/change-password', data: req.toJson());
+      await _dio.post<Map<String, dynamic>>(
+        '/api/auth/change-password',
+        data: req.toJson(),
+      );
 
       // Update session
       _sessionKeys.setMasterKey(newLmk);
       AppLogger.i('ApiAuthRepository: Password changed successfully');
-
     } on DioException catch (e) {
       _handleDioError(e);
     } catch (e) {
@@ -258,8 +273,9 @@ class ApiAuthRepository implements AuthRepository {
       );
       final saltBase64 = challengeResponse.data!['salt'] as String;
       final saltBytes = base64Url.decode(saltBase64);
-      final recoveryWrappedAk = challengeResponse.data!['recovery_wrapped_ak'] as String?;
-      
+      final recoveryWrappedAk =
+          challengeResponse.data!['recovery_wrapped_ak'] as String?;
+
       if (recoveryWrappedAk == null) {
         throw const AuthException('Recovery data missing on server');
       }
@@ -281,16 +297,20 @@ class ApiAuthRepository implements AuthRepository {
         newWrappedAccountKey: newWrappedAk,
       );
 
-      await _dio.post<Map<String, dynamic>>('/api/auth/recover', data: req.toJson());
-      
+      await _dio.post<Map<String, dynamic>>(
+        '/api/auth/recover',
+        data: req.toJson(),
+      );
+
       // Auto-login happens because endpoint returns tokens (according to our mocks, though standard is login-verify. Wait, let me check backend router. /api/auth/recover doesn't return tokens directly in our backend. Ah, wait, The backend returns message. The user logs in next, OR recover returns tokens. Let's look at auth_router.py for recover)
       // The backend auth_router.py returns RecoverAccountResponse with message. It doesn't return tokens!
       // So the user must explicitly login next, OR we can just login immediately via code.
       // Easiest is to call login() right after recovery succeeds.
-      AppLogger.i('ApiAuthRepository: Recovery successful on server, logging in now');
+      AppLogger.i(
+        'ApiAuthRepository: Recovery successful on server, logging in now',
+      );
 
       await login(email, newPassword);
-
     } on DioException catch (e) {
       _handleDioError(e);
     } catch (e) {
@@ -318,6 +338,7 @@ class ApiAuthRepository implements AuthRepository {
       _currentRole = null;
       _sessionKeys.clear();
       await _storage.deleteTokens();
+      await _storage.deleteUserEmail();
       _controller.add(null);
     }
   }
@@ -330,6 +351,7 @@ class ApiAuthRepository implements AuthRepository {
       _currentEmail = null;
       _sessionKeys.clear();
       await _storage.deleteTokens();
+      await _storage.deleteUserEmail();
       _controller.add(null);
     } on DioException catch (e) {
       _handleDioError(e);
@@ -349,9 +371,7 @@ class ApiAuthRepository implements AuthRepository {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/csrf',
-        options: Options(
-          headers: {'Authorization': 'Bearer $accessToken'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       final token = response.data?['csrf_token'] as String?;
       if (token != null) {
@@ -367,14 +387,20 @@ class ApiAuthRepository implements AuthRepository {
   void _handleDioError(DioException e) {
     // If HttpInterceptor already mapped this to an AppException, use that!
     if (e.error is AppException) {
-      throw AuthException((e.error as AppException).message, code: (e.error as AppException).code);
+      throw AuthException(
+        (e.error as AppException).message,
+        code: (e.error as AppException).code,
+      );
     }
 
     if (e.response != null) {
       final data = e.response!.data;
       if (data is Map<String, dynamic> && data.containsKey('detail')) {
         final detail = data['detail'];
-        throw AuthException(detail.toString(), code: e.response!.statusCode.toString());
+        throw AuthException(
+          detail.toString(),
+          code: e.response!.statusCode.toString(),
+        );
       }
     }
     throw AuthException(e.message ?? 'Network error');
@@ -390,6 +416,19 @@ class ApiAuthRepository implements AuthRepository {
       return claims['role'] as String? ?? 'user';
     } catch (_) {
       return 'user';
+    }
+  }
+
+  String? _extractEmailFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final claims = jsonDecode(decoded) as Map<String, dynamic>;
+      return (claims['email'] ?? claims['sub']) as String?;
+    } catch (_) {
+      return null;
     }
   }
 }
