@@ -102,6 +102,27 @@ class Settings(BaseSettings):
     # --- PDF Storage ---
     pdf_storage_path: str = Field(default="./data/pdfs")
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+        """Parse CORS origins from JSON list or comma-separated string."""
+        if isinstance(v, str):
+            # Strip potential shell quotes
+            v = v.strip("'").strip('"').strip()
+            
+            # Case 1: JSON array (starts with [)
+            if v.startswith("[") and v.endswith("]"):
+                import json
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    # If JSON fails, fall back to stripping [ ] and treating as CSV
+                    v = v[1:-1]
+            
+            # Case 2: Comma-separated string
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
     @field_validator("jwt_private_key", "jwt_public_key", mode="before")
     @classmethod
     def _load_key_from_file_or_value(cls, v: str) -> str:

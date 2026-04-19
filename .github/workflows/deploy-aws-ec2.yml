@@ -183,7 +183,8 @@ jobs:
             
             echo "Updating environment variables..."
             FRONTEND_ORIGIN_VALUE="${DEPLOY_FRONTEND_ORIGIN:-}"
-            NEW_CORS="[\"${FRONTEND_ORIGIN_VALUE}\", \"http://localhost:5000\", \"http://127.0.0.1:5000\", \"http://localhost:8080\"]"
+            # Use comma-separated string instead of JSON list for robustness
+            NEW_CORS="${FRONTEND_ORIGIN_VALUE},http://localhost:5000,http://127.0.0.1:5000,http://localhost:8080"
             if grep -q "CORS_ORIGINS=" "$REPO_DIR/apps/backend/.env"; then
               sudo sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS='${NEW_CORS}'|" "$REPO_DIR/apps/backend/.env"
             else

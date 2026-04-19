@@ -121,6 +121,21 @@ def create_app() -> FastAPI:
 
     # --- Middleware stack (order matters: outermost runs first) ---
 
+    # Diagnostic logging for preflight/400 errors
+    @app.middleware("http")
+    async def diagnostic_middleware(request, call_next):
+        response = await call_next(request)
+        if response.status_code == 400:
+            logger.warning(
+                "400 Bad Request on %s %s. Origin: %s, Host: %s, UA: %s",
+                request.method,
+                request.url.path,
+                request.headers.get("Origin"),
+                request.headers.get("Host"),
+                request.headers.get("User-Agent"),
+            )
+        return response
+
     # Security headers on every response
     app.add_middleware(SecurityHeadersMiddleware)
 
