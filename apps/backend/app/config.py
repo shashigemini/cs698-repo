@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_ttl_days: int = Field(default=7, ge=1)
 
     # --- CORS ---
-    cors_origins: list[str] = Field(
+    cors_origins: typing.Any = Field(
         default=["http://localhost:3000", "http://localhost:8080"],
         description="Allowed CORS origins",
     )
@@ -104,24 +104,31 @@ class Settings(BaseSettings):
 
     @field_validator("cors_origins", mode="before")
     @classmethod
-    def _parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+    def _parse_cors_origins(cls, v: typing.Any) -> list[str]:
         """Parse CORS origins from JSON list or comma-separated string."""
         if isinstance(v, str):
             # Strip potential shell quotes
             v = v.strip("'").strip('"').strip()
             
+            if not v:
+                return []
+                
             # Case 1: JSON array (starts with [)
             if v.startswith("[") and v.endswith("]"):
                 import json
                 try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(item) for item in parsed]
+                except (json.JSONDecodeError, TypeError):
                     # If JSON fails, fall back to stripping [ ] and treating as CSV
                     v = v[1:-1]
             
             # Case 2: Comma-separated string
             return [s.strip() for s in v.split(",") if s.strip()]
-        return v
+        elif isinstance(v, list):
+            return [str(item) for item in v]
+        return []
 
     @field_validator("jwt_private_key", "jwt_public_key", mode="before")
     @classmethod

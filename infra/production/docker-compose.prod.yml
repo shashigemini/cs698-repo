@@ -42,11 +42,12 @@ services:
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # Removed healthcheck due to missing curl in base image and corruption issues
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
     logging:
       driver: awslogs
       options:
@@ -71,12 +72,9 @@ services:
       CSRF_SECRET: ${CSRF_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
-      postgres:
-        condition: service_started
-      redis:
-        condition: service_started
-      qdrant:
-        condition: service_started
+      - postgres
+      - redis
+      - qdrant
     ports:
       - "8000:8000"
     volumes:

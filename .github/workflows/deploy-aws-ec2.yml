@@ -190,14 +190,21 @@ jobs:
               echo "CORS_ORIGINS='\${NEW_CORS}'" | sudo tee -a "\$REPO_DIR/apps/backend/.env"
             fi
             
+            echo "Cleaning up corrupted Qdrant state (forced for alpha recovery)..."
+            sudo docker compose -f infra/production/docker-compose.prod.yml down backend qdrant || true
+            sudo docker volume rm production_qdrant_data || true
+            
             echo "Starting containers..."
-            sudo docker compose --env-file "\$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d --build backend
+            sudo docker compose --env-file "\$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d --build
             
             echo "Diagnostic: Docker PS"
             sudo docker ps
             
-            echo "Diagnostic: Docker image info"
-            sudo docker image ls | grep spiritual-qa-backend || true
+            echo "Diagnostic: Docker Logs (backend)"
+            sudo docker compose -f infra/production/docker-compose.prod.yml logs backend --tail 50
+            
+            echo "Diagnostic: Docker Logs (qdrant)"
+            sudo docker compose -f infra/production/docker-compose.prod.yml logs qdrant --tail 50
             
             echo "Diagnostic: Git status"
             git log -1
