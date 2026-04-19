@@ -4,8 +4,8 @@ Creates and configures the application with all middleware,
 routers, error handlers, and lifecycle management.
 """
 
-from contextlib import asynccontextmanager
 import typing
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI
@@ -62,19 +62,29 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     app.state.redis = redis_client
 
     if settings.debug:
-        from app.models.user import User
         from sqlalchemy import select
+
+        from app.models.user import User
+
         async for session in database.get_session():
             try:
-                for uid, email in [("00000000-0000-0000-0000-000000000000", "guest@example.com"), ("11111111-1111-1111-1111-111111111111", "mock@example.com")]:
-                    if not (await session.execute(select(User).where(User.id == uid))).scalar_one_or_none():
-                        session.add(User(id=uid, email=email, password_hash="none", role="admin"))
+                for uid, email in [
+                    ("00000000-0000-0000-0000-000000000000", "guest@example.com"),
+                    ("11111111-1111-1111-1111-111111111111", "mock@example.com"),
+                ]:
+                    if not (
+                        await session.execute(select(User).where(User.id == uid))
+                    ).scalar_one_or_none():
+                        session.add(
+                            User(
+                                id=uid, email=email, password_hash="none", role="admin"
+                            )
+                        )
                 await session.commit()
                 logger.info("Seeded backend debug users")
             except Exception as e:
                 logger.error("Failed to seed debug users: %s", e)
             break
-
 
     # Qdrant initialization continues below...
 
@@ -82,10 +92,16 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     try:
         from qdrant_client import AsyncQdrantClient
         from qdrant_client.models import Distance, VectorParams
-        
-        logger.info("Initializing Qdrant client at %s:%s", settings.qdrant_host, settings.qdrant_port)
-        qclient = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
-        
+
+        logger.info(
+            "Initializing Qdrant client at %s:%s",
+            settings.qdrant_host,
+            settings.qdrant_port,
+        )
+        qclient = AsyncQdrantClient(
+            host=settings.qdrant_host, port=settings.qdrant_port
+        )
+
         exists = await qclient.collection_exists(settings.qdrant_collection)
         if not exists:
             logger.info("Creating Qdrant collection: %s", settings.qdrant_collection)
@@ -93,14 +109,19 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
                 collection_name=settings.qdrant_collection,
                 vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
             )
-            logger.info("Successfully created Qdrant collection: %s", settings.qdrant_collection)
+            logger.info(
+                "Successfully created Qdrant collection: %s", settings.qdrant_collection
+            )
         else:
-            logger.info("Qdrant collection %s already exists", settings.qdrant_collection)
+            logger.info(
+                "Qdrant collection %s already exists", settings.qdrant_collection
+            )
     except Exception as e:
         logger.error("Failed to initialize Qdrant collection: %s", e)
 
     # Start token cleanup background task
     from app.services.token_cleanup import TokenCleanupTask
+
     cleanup_task = TokenCleanupTask(interval_hours=24)
     cleanup_task.start()
 
@@ -156,9 +177,7 @@ def create_app() -> FastAPI:
 
     # CSRF protection on mutation requests
     if settings.is_production:
-        app.add_middleware(
-            CSRFMiddleware, csrf_secret=settings.csrf_secret
-        )
+        app.add_middleware(CSRFMiddleware, csrf_secret=settings.csrf_secret)
 
     # CORS — restricted to configured origins
     logger.info("Configured CORS origins: %s", settings.cors_origins)
@@ -166,13 +185,17 @@ def create_app() -> FastAPI:
         "allow_origins": settings.cors_origins,
         "allow_credentials": True,
         "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["*"],  # Allow all headers in production to prevent preflight blocks
+        "allow_headers": [
+            "*"
+        ],  # Allow all headers in production to prevent preflight blocks
         "expose_headers": ["X-Request-ID"],
     }
-    
+
     # Always allow Amplify subdomains and localhost/dev environments
-    cors_kwargs["allow_origin_regex"] = r"^https?://(localhost|127\.0\.0\.1|.*\.amplifyapp\.com|.*\.cloudfront\.net|.*github\.dev)(:[0-9]+)?$"
-        
+    cors_kwargs["allow_origin_regex"] = (
+        r"^https?://(localhost|127\.0\.0\.1|.*\.amplifyapp\.com|.*\.cloudfront\.net|.*github\.dev)(:[0-9]+)?$"
+    )
+
     app.add_middleware(CORSMiddleware, **cors_kwargs)
 
     # --- Error handlers ---
@@ -183,33 +206,34 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(admin_router)
     app.include_router(health_router)
-    
+
     # E2E test router
     if settings.environment == "e2e_testing":
         from app.api.test_router import router as test_router
+
         app.include_router(test_router)
 
     # --- CSRF Token Endpoint ---
+    from fastapi import Header as _Header
+
     @app.get("/api/csrf")
     async def get_csrf_token(
-        authorization: Optional[str] = None,
+        authorization: Optional[str] = _Header(default=None),
     ):
         """Get a CSRF token bound to the current session."""
         import hashlib
+
         from app.middleware.csrf import generate_csrf_token
 
         if not authorization or not authorization.startswith("Bearer "):
             from fastapi import HTTPException
+
             raise HTTPException(401, "Authentication required")
 
-        access_token = authorization[7:]  # type: ignore
-        session_id = hashlib.sha256(
-            access_token.encode()
-        ).hexdigest()[:32]  # type: ignore
+        access_token = authorization[7:]
+        session_id = hashlib.sha256(access_token.encode()).hexdigest()[:32]
 
-        token = generate_csrf_token(
-            settings.csrf_secret, session_id
-        )
+        token = generate_csrf_token(settings.csrf_secret, session_id)
         return {"csrf_token": token}
 
     return app
@@ -220,12 +244,14 @@ def get_e2e_app() -> FastAPI:
     app = create_app()
     # Apply monkey patches to replace OpenAI with stubs
     from app.e2e_overrides import apply_e2e_overrides
+
     apply_e2e_overrides(app)
     return app
 
 
 # Uvicorn entry point
 import os
+
 if os.getenv("ENVIRONMENT") == "e2e_testing":
     app = get_e2e_app()
 else:

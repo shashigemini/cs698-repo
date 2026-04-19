@@ -8,19 +8,19 @@ part of 'admin_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provides whether the current authenticated user has admin
-/// privileges.
+/// Provides whether the current authenticated user has admin privileges.
+/// Role is extracted from the JWT access token at login time and persisted.
 
 @ProviderFor(isAdmin)
 final isAdminProvider = IsAdminProvider._();
 
-/// Provides whether the current authenticated user has admin
-/// privileges.
+/// Provides whether the current authenticated user has admin privileges.
+/// Role is extracted from the JWT access token at login time and persisted.
 
 final class IsAdminProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
-  /// Provides whether the current authenticated user has admin
-  /// privileges.
+  /// Provides whether the current authenticated user has admin privileges.
+  /// Role is extracted from the JWT access token at login time and persisted.
   IsAdminProvider._()
     : super(
         from: null,
@@ -54,7 +54,7 @@ final class IsAdminProvider extends $FunctionalProvider<bool, bool, bool>
   }
 }
 
-String _$isAdminHash() => r'6d64d10565bfe61b11956b88a25488f47212fc64';
+String _$isAdminHash() => r'1e1b545a41a0ef9b3658af0915a8c08c5702a9de';
 
 @ProviderFor(AdminController)
 final adminControllerProvider = AdminControllerProvider._();

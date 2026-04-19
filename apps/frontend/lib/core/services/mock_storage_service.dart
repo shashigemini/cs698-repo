@@ -35,6 +35,7 @@ class MockStorageService implements StorageService {
     _store.remove('accessToken');
     _store.remove('refreshToken');
     _store.remove('accessExpiresAt');
+    _store.remove('userRole');
   }
 
   @override
@@ -55,6 +56,21 @@ class MockStorageService implements StorageService {
   @override
   Future<String?> getCsrfToken() async {
     return _store['csrfToken'];
+  }
+
+  @override
+  Future<void> saveUserRole(String role) async {
+    _store['userRole'] = role;
+  }
+
+  @override
+  Future<String?> getUserRole() async {
+    return _store['userRole'];
+  }
+
+  @override
+  Future<void> deleteUserRole() async {
+    _store.remove('userRole');
   }
 
   /// Clears all stored data.

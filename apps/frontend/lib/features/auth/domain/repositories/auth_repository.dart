@@ -38,6 +38,9 @@ abstract class AuthRepository {
   /// The current user's ID, or `null` if not authenticated.
   String? get currentUserId;
 
+  /// The current user's role ('admin' or 'user'), or `null` if not authenticated.
+  String? get currentRole;
+
   /// Finalizes the registration process, transitioning from "registered"
   /// to "authenticated" state. This should be called after the user
   /// has acknowledged their recovery mnemonic.

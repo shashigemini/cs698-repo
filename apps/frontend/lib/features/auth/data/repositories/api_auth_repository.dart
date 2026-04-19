@@ -24,6 +24,7 @@ class ApiAuthRepository implements AuthRepository {
 
   String? _currentUser;
   String? _currentEmail;
+  String? _currentRole;
 
   ApiAuthRepository({
     required Dio dio,
@@ -48,7 +49,8 @@ class ApiAuthRepository implements AuthRepository {
       final hasTokens = tokens != null;
       if (hasTokens) {
         AppLogger.i('ApiAuthRepository: Restored session from storage');
-        _currentUser = 'restored-user'; 
+        _currentUser = 'restored-user';
+        _currentRole = await _storage.getUserRole();
         _controller.add(_currentUser);
       }
     } catch (e) {
@@ -61,6 +63,9 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   String? get currentUserId => _currentUser;
+
+  @override
+  String? get currentRole => _currentRole;
 
   @override
   Future<void> login(String email, String password) async {
@@ -105,6 +110,10 @@ class ApiAuthRepository implements AuthRepository {
 
       // Fetch CSRF token for subsequent mutation requests
       await _fetchAndSaveCsrfToken(tokenData.accessToken);
+
+      final role = _extractRoleFromJwt(tokenData.accessToken);
+      await _storage.saveUserRole(role);
+      _currentRole = role;
 
       _currentUser = 'auth-user';
       _currentEmail = email;
@@ -166,9 +175,13 @@ class ApiAuthRepository implements AuthRepository {
       // Fetch CSRF token for subsequent mutation requests
       await _fetchAndSaveCsrfToken(tokenData.accessToken);
 
+      final role = _extractRoleFromJwt(tokenData.accessToken);
+      await _storage.saveUserRole(role);
+      _currentRole = role;
+
       _currentUser = 'new-user';
       _currentEmail = email;
-      
+
       AppLogger.i('ApiAuthRepository: Registration Successful');
       return recoveryMnemonic;
 
@@ -302,6 +315,7 @@ class ApiAuthRepository implements AuthRepository {
     } finally {
       _currentUser = null;
       _currentEmail = null;
+      _currentRole = null;
       _sessionKeys.clear();
       await _storage.deleteTokens();
       _controller.add(null);
@@ -364,5 +378,18 @@ class ApiAuthRepository implements AuthRepository {
       }
     }
     throw AuthException(e.message ?? 'Network error');
+  }
+
+  String _extractRoleFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return 'user';
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final claims = jsonDecode(decoded) as Map<String, dynamic>;
+      return claims['role'] as String? ?? 'user';
+    } catch (_) {
+      return 'user';
+    }
   }
 }

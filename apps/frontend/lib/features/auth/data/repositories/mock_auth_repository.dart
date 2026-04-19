@@ -61,6 +61,9 @@ class MockAuthRepository implements AuthRepository {
   String? get currentUserId => _currentUser;
 
   @override
+  String? get currentRole => null;
+
+  @override
   Future<void> login(String email, String password) async {
     AppLogger.i('MockAuthRepository: E2EE Login Attempt');
     await _initDefaults;
