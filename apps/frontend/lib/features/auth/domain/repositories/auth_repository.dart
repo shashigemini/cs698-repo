@@ -4,6 +4,11 @@
 /// guest access, and logout. The [authStateChanges] stream
 /// notifies listeners of authentication state transitions.
 abstract class AuthRepository {
+  /// Restores any persisted session state (if present) during app startup.
+  ///
+  /// This method should be awaited before routing decisions depend on auth.
+  Future<void> initializeSession();
+
   /// Authenticates a user with [email] and [password].
   ///
   /// Throws an [Exception] if credentials are invalid.

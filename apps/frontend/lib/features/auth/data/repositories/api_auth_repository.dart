@@ -21,6 +21,7 @@ class ApiAuthRepository implements AuthRepository {
   final StorageService _storage;
   final RecoveryService _recovery;
   final StreamController<String?> _controller = StreamController<String?>.broadcast();
+  Future<void>? _initializeFuture;
 
   String? _currentUser;
   String? _currentEmail;
@@ -36,11 +37,15 @@ class ApiAuthRepository implements AuthRepository {
         _crypto = crypto,
         _sessionKeys = sessionKeys,
         _storage = storage,
-        _recovery = recovery {
-    _initRestoreSession();
+        _recovery = recovery;
+
+  @override
+  Future<void> initializeSession() {
+    _initializeFuture ??= _restoreSession();
+    return _initializeFuture!;
   }
 
-  Future<void> _initRestoreSession() async {
+  Future<void> _restoreSession() async {
     try {
       AppLogger.i('ApiAuthRepository: Initializing session restoration using ${_storage.runtimeType}');
       // Basic restore — actual E2EE key restoration would happen in a higher coordinator,
