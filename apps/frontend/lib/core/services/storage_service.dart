@@ -30,9 +30,18 @@ abstract class StorageService {
   /// Persists the user's role (e.g. 'admin' or 'user').
   Future<void> saveUserRole(String role);
 
+  /// Persists the authenticated user's email.
+  Future<void> saveUserEmail(String email);
+
+  /// Retrieves the authenticated user's email, or `null` if none exists.
+  Future<String?> getUserEmail();
+
   /// Retrieves the stored user role, or `null` if none exists.
   Future<String?> getUserRole();
 
   /// Removes stored user role (e.g. on logout).
   Future<void> deleteUserRole();
+
+  /// Removes stored user email (e.g. on logout).
+  Future<void> deleteUserEmail();
 }
