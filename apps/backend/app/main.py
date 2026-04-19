@@ -76,34 +76,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
             break
 
 
-    # Ensure at least one admin exists (promote first user if none found)
-    async for session in database.get_session():
-        try:
-            from app.models.user import User
-            from sqlalchemy import select
-            
-            # Find the oldest user
-            first_user_result = await session.execute(select(User).order_by(User.created_at))
-            user_to_promote = first_user_result.scalars().first()
-            
-            if user_to_promote:
-                # Log current state
-                logger.info("Checking first user %s (ID: %s) role: %s", 
-                            user_to_promote.email, user_to_promote.id, user_to_promote.role)
-                
-                if user_to_promote.role != "admin":
-                    user_to_promote.role = "admin"
-                    await session.commit()
-                    logger.info("SUCCESSFULLY promoted %s to admin", user_to_promote.email)
-                else:
-                    logger.info("User %s is already an admin", user_to_promote.email)
-            else:
-                logger.warning("No users found in database to promote")
-        except Exception as e:
-            logger.error("Failed to ensure admin exists: %s", e)
-            import traceback
-            logger.error(traceback.format_exc())
-        break
+    # Qdrant initialization continues below...
 
     # Initialize Qdrant Collection
     try:
