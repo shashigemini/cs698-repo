@@ -4,9 +4,8 @@ Uses pydantic-settings for validation and type coercion.
 All secrets come from environment variables — never hardcoded.
 """
 
-from functools import lru_cache
 import typing
-from typing import Optional
+from functools import lru_cache
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,7 +25,10 @@ class Settings(BaseSettings):
     app_name: str = "Spiritual Q&A Backend"
     app_version: str = "0.1.0"
     debug: bool = False
-    environment: str = Field(default="development", pattern="^(development|staging|production|testing|e2e_testing)$")
+    environment: str = Field(
+        default="development",
+        pattern="^(development|staging|production|testing|e2e_testing)$",
+    )
 
     # --- Server ---
     host: str = "0.0.0.0"
@@ -100,6 +102,12 @@ class Settings(BaseSettings):
     max_query_length: int = Field(default=2000, ge=1)
     max_upload_bytes: int = Field(default=52_428_800)  # 50MB
 
+    # --- Admin ---
+    admin_emails: list[str] = Field(
+        default=[],
+        description="Comma-separated list of emails to auto-promote to admin on login",
+    )
+
     # --- PDF Storage ---
     pdf_storage_path: str = Field(default="./data/pdfs")
 
@@ -110,13 +118,14 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             # Strip potential shell quotes
             v = v.strip("'").strip('"').strip()
-            
+
             if not v:
                 return []
-                
+
             # Case 1: JSON array (starts with [)
             if v.startswith("[") and v.endswith("]"):
                 import json
+
                 try:
                     parsed = json.loads(v)
                     if isinstance(parsed, list):
@@ -124,11 +133,21 @@ class Settings(BaseSettings):
                 except (json.JSONDecodeError, TypeError):
                     # If JSON fails, fall back to stripping [ ] and treating as CSV
                     v = v[1:-1]
-            
+
             # Case 2: Comma-separated string
             return [s.strip() for s in v.split(",") if s.strip()]
         elif isinstance(v, list):
             return [str(item) for item in v]
+        return []
+
+    @field_validator("admin_emails", mode="before")
+    @classmethod
+    def _parse_admin_emails(cls, v: typing.Any) -> list[str]:
+        """Parse admin emails from a comma-separated string or list."""
+        if isinstance(v, str):
+            return [e.strip().lower() for e in v.split(",") if e.strip()]
+        elif isinstance(v, list):
+            return [str(e).strip().lower() for e in v]
         return []
 
     @field_validator("jwt_private_key", "jwt_public_key", mode="before")
