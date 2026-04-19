@@ -177,6 +177,37 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(repository.currentUserId, 'restored@example.com');
+      expect(repository.currentUserId, isNot('restored-user'));
     });
+
+    test(
+      'restore session falls back to JWT email when storage email is empty',
+      () async {
+        final payload = base64Url.encode(
+          utf8.encode('{"role":"user","email":"jwt@example.com"}'),
+        );
+        when(() => storage.getTokens()).thenAnswer(
+          (_) async => TokenPair(
+            accessToken: 'header.$payload.signature',
+            refreshToken: 'refresh-token',
+            accessExpiresAt: DateTime.utc(2030, 1, 1),
+          ),
+        );
+        when(() => storage.getUserEmail()).thenAnswer((_) async => null);
+
+        final repository = ApiAuthRepository(
+          dio: dio,
+          crypto: crypto,
+          sessionKeys: sessionKeys,
+          storage: storage,
+          recovery: recovery,
+        );
+
+        await Future<void>.delayed(Duration.zero);
+
+        expect(repository.currentUserId, 'jwt@example.com');
+        expect(repository.currentUserId, isNot('restored-user'));
+      },
+    );
   });
 }
