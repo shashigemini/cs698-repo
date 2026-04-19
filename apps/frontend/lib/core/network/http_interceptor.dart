@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_strings.dart';
@@ -204,6 +206,11 @@ class HttpInterceptor extends Interceptor {
       final newTokenPair = TokenPair.fromJson(data);
       await _storage.saveTokens(newTokenPair);
 
+      // Keep the stored role in sync with the new JWT so that the next
+      // session restore reads the correct role (not a stale cached value).
+      final newRole = _extractRoleFromJwt(newTokenPair.accessToken);
+      await _storage.saveUserRole(newRole);
+
       // CSRF tokens are keyed to sha256(access_token) on the backend.
       // After token rotation the old CSRF token is invalid — fetch a new one.
       try {
@@ -227,6 +234,19 @@ class HttpInterceptor extends Interceptor {
       // On refresh failure, we clear tokens to force user back to login
       await _storage.deleteTokens();
       return false;
+    }
+  }
+
+  String _extractRoleFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return 'user';
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final claims = jsonDecode(decoded) as Map<String, dynamic>;
+      return claims['role'] as String? ?? 'user';
+    } catch (_) {
+      return 'user';
     }
   }
 

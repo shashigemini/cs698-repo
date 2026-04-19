@@ -111,8 +111,16 @@ class TokenService:
     async def rotate_refresh_token(
         self,
         old_token: str,
+        *,
+        role: str = "user",
     ) -> dict:
         """Validate old refresh token, revoke it, issue new pair.
+
+        Args:
+            old_token: The refresh token to rotate.
+            role: The user's current role from the DB. Callers must supply
+                this — refresh tokens carry no role claim, so reading it
+                from the payload would always produce "user".
 
         Returns:
             New token pair dict.
@@ -133,8 +141,5 @@ class TokenService:
             expires_at=old_exp,
         )
 
-        # Issue new pair
-        return self.generate_token_pair(
-            user_id=user_id,
-            role=payload.get("role", "user"),
-        )
+        # Issue new pair with the caller-supplied role
+        return self.generate_token_pair(user_id=user_id, role=role)

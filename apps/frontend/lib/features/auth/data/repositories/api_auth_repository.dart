@@ -55,7 +55,9 @@ class ApiAuthRepository implements AuthRepository {
             await _storage.getUserEmail() ??
             _extractEmailFromJwt(tokens.accessToken);
         _currentUser = _currentEmail;
-        _currentRole = await _storage.getUserRole();
+        // Derive role from the stored JWT rather than a separate storage key
+        // so that the cached role always matches what will be sent to the backend.
+        _currentRole = _extractRoleFromJwt(tokens.accessToken);
         _controller.add(_currentUser);
       }
     } catch (e) {

@@ -199,13 +199,24 @@ class AuthService:
     async def refresh_tokens(self, *, refresh_token: str) -> dict:
         """Rotate refresh token and issue new pair.
 
+        Queries the DB for the user's current role so that role changes
+        (e.g. admin promotion) take effect on the next refresh rather than
+        requiring a full re-login.
+
         Args:
             refresh_token: The current refresh token.
 
         Returns:
             New token pair dict.
         """
-        result = await self._token_service.rotate_refresh_token(refresh_token)
+        # Validate first to get user_id without revoking yet
+        payload = await self._token_service.validate_refresh_token(refresh_token)
+        user = await self._user_repo.get_by_id(uuid.UUID(payload["sub"]))
+        current_role = user.role if user else "user"
+
+        result = await self._token_service.rotate_refresh_token(
+            refresh_token, role=current_role
+        )
         return {
             "access_token": result["access_token"],
             "refresh_token": result["refresh_token"],

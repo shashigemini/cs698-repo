@@ -315,19 +315,37 @@ async def test_login_verify_keys_missing_auth_14(auth_service):
 
 @pytest.mark.asyncio
 async def test_refresh_tokens_success_auth_15(auth_service):
-    """AUTH-15: Delegates to TokenService and returns new pair."""
+    """AUTH-15: Queries DB for current role, passes it to TokenService rotation."""
+    import uuid
+    from unittest.mock import AsyncMock
+
     exp = datetime.now(timezone.utc)
-    auth_service._token_service.rotate_refresh_token.return_value = {
-        "access_token": "new-at",
-        "refresh_token": "new-rt",
-        "access_expires_at": exp,
-    }
+    user_id = str(uuid.uuid4())
+
+    # validate_refresh_token returns payload with user_id
+    auth_service._token_service.validate_refresh_token = AsyncMock(
+        return_value={"sub": user_id}
+    )
+    # User in DB has admin role
+    admin_user = MockUser(role="admin")
+    auth_service._user_repo.get_by_id = AsyncMock(return_value=admin_user)
+    # rotate_refresh_token returns new pair
+    auth_service._token_service.rotate_refresh_token = AsyncMock(
+        return_value={
+            "access_token": "new-at",
+            "refresh_token": "new-rt",
+            "access_expires_at": exp,
+        }
+    )
 
     result = await auth_service.refresh_tokens(refresh_token="old-rt")
 
     assert result["access_token"] == "new-at"
     assert result["access_expires_at"] == exp
-    auth_service._token_service.rotate_refresh_token.assert_called_once_with("old-rt")
+    # Must pass the DB role, not a stale value from the refresh token
+    auth_service._token_service.rotate_refresh_token.assert_called_once_with(
+        "old-rt", role="admin"
+    )
 
 
 @pytest.mark.asyncio
