@@ -5,6 +5,7 @@ All secrets come from environment variables — never hardcoded.
 """
 
 from functools import lru_cache
+import typing
 from typing import Optional
 
 from pydantic import Field, field_validator

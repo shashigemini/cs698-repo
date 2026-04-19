@@ -190,9 +190,9 @@ jobs:
               echo "CORS_ORIGINS='\${NEW_CORS}'" | sudo tee -a "\$REPO_DIR/apps/backend/.env"
             fi
             
-            echo "Cleaning up corrupted Qdrant state (forced for alpha recovery)..."
-            sudo docker compose -f infra/production/docker-compose.prod.yml down backend qdrant || true
-            sudo docker volume rm production_qdrant_data || true
+            echo "Restarting containers..."
+            # Note: We already cleared corrupted state in previous run. 
+            # sudo docker volume rm production_qdrant_data || true
             
             echo "Starting containers..."
             sudo docker compose --env-file "\$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d --build
