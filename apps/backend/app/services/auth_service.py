@@ -177,7 +177,7 @@ class AuthService:
             role=user.role,
         )
 
-        logger.info("User logged in successfully")
+        logger.info("User %s logged in with role: %s", email, user.role)
 
         return {
             "user_id": str(user.id),

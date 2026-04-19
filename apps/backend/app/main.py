@@ -80,20 +80,29 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     async for session in database.get_session():
         try:
             from app.models.user import User
-            from sqlalchemy import select, update
+            from sqlalchemy import select
             
-            # Check if any admin exists
-            admin_check = await session.execute(select(User).where(User.role == "admin"))
-            if not admin_check.first():
-                # No admin found, promote the first user we find
-                first_user_result = await session.execute(select(User).order_by(User.created_at))
-                user_to_promote = first_user_result.scalars().first()
-                if user_to_promote:
+            # Find the oldest user
+            first_user_result = await session.execute(select(User).order_by(User.created_at))
+            user_to_promote = first_user_result.scalars().first()
+            
+            if user_to_promote:
+                # Log current state
+                logger.info("Checking first user %s (ID: %s) role: %s", 
+                            user_to_promote.email, user_to_promote.id, user_to_promote.role)
+                
+                if user_to_promote.role != "admin":
                     user_to_promote.role = "admin"
                     await session.commit()
-                    logger.info("Auto-promoted first user %s to admin", user_to_promote.email)
+                    logger.info("SUCCESSFULLY promoted %s to admin", user_to_promote.email)
+                else:
+                    logger.info("User %s is already an admin", user_to_promote.email)
+            else:
+                logger.warning("No users found in database to promote")
         except Exception as e:
             logger.error("Failed to ensure admin exists: %s", e)
+            import traceback
+            logger.error(traceback.format_exc())
         break
 
     # Initialize Qdrant Collection
