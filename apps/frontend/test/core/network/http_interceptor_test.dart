@@ -184,6 +184,7 @@ void main() {
       );
 
       when(() => mockStorage.saveTokens(any())).thenAnswer((_) async {});
+      when(() => mockStorage.saveUserRole(any())).thenAnswer((_) async {});
 
       // Stub the retry request on mockDio
       when(() => mockDio.fetch<dynamic>(any())).thenAnswer(
