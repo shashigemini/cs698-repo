@@ -3,7 +3,6 @@
 from typing import Optional
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.config import Settings
 from app.core.exceptions import RetrievalError
@@ -42,31 +41,29 @@ class Retriever:
             List of passage dicts with text, metadata, and score.
         """
         try:
-            # Use query_points which is the modern API in qdrant-client 1.11+
-            response = await self._client.query_points(
+            results = await self._client.search(
                 collection_name=self._collection,
-                query=query_vector,
+                query_vector=query_vector,
                 limit=top_k or self._top_k,
                 score_threshold=threshold or self._threshold,
             )
-            results = response.points
         except Exception as e:
             logger.error("Qdrant search failed: %s", e)
-            raise RetrievalError(
-                "Document search service unavailable"
-            ) from e
+            raise RetrievalError("Document search service unavailable") from e
 
         passages = []
         for hit in results:
             payload = hit.payload or {}
-            passages.append({
-                "document_id": payload.get("document_id", ""),
-                "title": payload.get("title", "Unknown"),
-                "page": payload.get("page", 0),
-                "paragraph_id": payload.get("paragraph_id", ""),
-                "text": payload.get("text", ""),
-                "relevance_score": round(hit.score, 4),
-            })
+            passages.append(
+                {
+                    "document_id": payload.get("document_id", ""),
+                    "title": payload.get("title", "Unknown"),
+                    "page": payload.get("page", 0),
+                    "paragraph_id": payload.get("paragraph_id", ""),
+                    "text": payload.get("text", ""),
+                    "relevance_score": round(hit.score, 4),
+                }
+            )
 
         logger.info(
             "Retrieved %d passages (threshold=%.2f)",
