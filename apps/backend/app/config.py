@@ -103,7 +103,7 @@ class Settings(BaseSettings):
     max_upload_bytes: int = Field(default=52_428_800)  # 50MB
 
     # --- Admin ---
-    admin_emails: list[str] = Field(
+    admin_emails: typing.Any = Field(
         default=[],
         description="Comma-separated list of emails to auto-promote to admin on login",
     )
@@ -143,8 +143,22 @@ class Settings(BaseSettings):
     @field_validator("admin_emails", mode="before")
     @classmethod
     def _parse_admin_emails(cls, v: typing.Any) -> list[str]:
-        """Parse admin emails from a comma-separated string or list."""
+        """Parse admin emails from JSON array, bare bracket list, or comma-separated string."""
         if isinstance(v, str):
+            v = v.strip("'").strip('"').strip()
+            if not v:
+                return []
+            if v.startswith("[") and v.endswith("]"):
+                import json
+
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [
+                            str(e).strip().lower() for e in parsed if str(e).strip()
+                        ]
+                except (json.JSONDecodeError, TypeError):
+                    v = v[1:-1]  # strip brackets, fall through to CSV
             return [e.strip().lower() for e in v.split(",") if e.strip()]
         elif isinstance(v, list):
             return [str(e).strip().lower() for e in v]
