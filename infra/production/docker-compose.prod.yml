@@ -42,12 +42,8 @@ services:
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+    # No healthcheck: qdrant/qdrant uses ubi8-micro base image which has
+    # no curl or wget. The backend startup retry loop handles the race.
     logging:
       driver: awslogs
       options:
@@ -78,7 +74,7 @@ services:
       redis:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "8000:8000"
     volumes:
