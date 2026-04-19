@@ -145,6 +145,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   return _HistoryListItem(
                     key: ValueKey('history_item_${conv.id}'),
                     conversation: conv,
+                    onTap: () async {
+                      await ref
+                          .read(chatControllerProvider.notifier)
+                          .loadConversation(conv.id);
+                      if (context.mounted) {
+                        context.go('/home');
+                      }
+                    },
                     onDelete: () async {
                       debugPrint(
                         'SettingsScreen: onDelete triggered for ${conv.id}',
@@ -299,12 +307,14 @@ class _UsageMeter extends StatelessWidget {
 
 class _HistoryListItem extends StatelessWidget {
   final Conversation conversation;
+  final Future<void> Function() onTap;
   final VoidCallback onDelete;
   final VoidCallback onExport;
 
   const _HistoryListItem({
     super.key,
     required this.conversation,
+    required this.onTap,
     required this.onDelete,
     required this.onExport,
   });
@@ -343,7 +353,7 @@ class _HistoryListItem extends StatelessWidget {
           ],
         ),
         onTap: () {
-          // Placeholder for selecting conversation
+          onTap();
         },
       ),
     );
