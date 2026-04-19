@@ -170,7 +170,9 @@ jobs:
       - name: Deploy/update backend container stack
         env:
           DEPLOY_FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
-          DEPLOY_ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
+          # Single-quote the substitution so YAML treats JSON array syntax as a string,
+          # not a YAML flow sequence (which would strip the inner quotes).
+          DEPLOY_ADMIN_EMAILS: '${{ vars.ADMIN_EMAILS }}'
         run: |
           # Base64-encode ADMIN_EMAILS so its JSON quotes survive the SSH heredoc expansion
           ADMIN_EMAILS_B64=$(printf '%s' "${DEPLOY_ADMIN_EMAILS:-}" | base64 -w0)
