@@ -58,6 +58,7 @@ app.*.map.json
 
 # Temporary Analysis and Test Logs
 *.txt
+!**/CMakeLists.txt
 *.json
 !pubspec.yaml
 !analysis_options.yaml
