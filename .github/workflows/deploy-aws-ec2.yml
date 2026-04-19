@@ -171,36 +171,33 @@ jobs:
         env:
           DEPLOY_FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
         run: |
-          ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" \
-            "DEPLOY_FRONTEND_ORIGIN=${DEPLOY_FRONTEND_ORIGIN}" <<'EOF_DEPLOY'
-            set -eu
+          ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no -i ~/.ssh/ec2_deploy_key ubuntu@"$PUBLIC_IP" <<EOF_DEPLOY
+            set -ex
             REPO_DIR="/home/ubuntu/cs698-repo"
-            cd "$REPO_DIR"
+            cd "\$REPO_DIR"
             
             echo "Syncing server code with origin/main..."
             sudo -u ubuntu git fetch origin main
             sudo -u ubuntu git reset --hard origin/main
             
             echo "Updating environment variables..."
+            # Construction of CORS origins
             FRONTEND_ORIGIN_VALUE="${DEPLOY_FRONTEND_ORIGIN:-}"
-            # Use comma-separated string instead of JSON list for robustness
-            NEW_CORS="${FRONTEND_ORIGIN_VALUE},http://localhost:5000,http://127.0.0.1:5000,http://localhost:8080"
-            if grep -q "CORS_ORIGINS=" "$REPO_DIR/apps/backend/.env"; then
-              sudo sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS='${NEW_CORS}'|" "$REPO_DIR/apps/backend/.env"
+            NEW_CORS="\${FRONTEND_ORIGIN_VALUE},http://localhost:5000,http://127.0.0.1:5000,http://localhost:8080"
+            
+            if grep -q "CORS_ORIGINS=" "\$REPO_DIR/apps/backend/.env"; then
+              sudo sed -i "s|CORS_ORIGINS=.*|CORS_ORIGINS='\${NEW_CORS}'|" "\$REPO_DIR/apps/backend/.env"
             else
-              echo "CORS_ORIGINS='${NEW_CORS}'" | sudo tee -a "$REPO_DIR/apps/backend/.env"
+              echo "CORS_ORIGINS='\${NEW_CORS}'" | sudo tee -a "\$REPO_DIR/apps/backend/.env"
             fi
             
             echo "Cleaning up old Docker resources..."
             sudo docker system prune -af
             
-            echo "Pulling latest images..."
-            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml pull
-            
             echo "Building and starting containers..."
-            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml build
-            sudo docker compose --env-file "$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d
-          EOF_DEPLOY
+            sudo docker compose --env-file "\$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml build --no-cache backend
+            sudo docker compose --env-file "\$REPO_DIR/apps/backend/.env" -f infra/production/docker-compose.prod.yml up -d backend
+EOF_DEPLOY
 
       - name: Post-deploy readiness check
         run: |
