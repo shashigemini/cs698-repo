@@ -6,7 +6,6 @@ the UserRepository, TokenService, and RateLimiter.
 
 import base64
 import uuid
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -124,12 +123,15 @@ class AuthService:
             # Return a deterministic fake salt to prevent enumeration
             # Hash the email to produce consistent salt per email
             import hashlib
+
             fake_salt = hashlib.sha256(email.encode()).digest()[:16]
             # Fake recovery string to match length/format
-            fake_recovery = base64.urlsafe_b64encode(hashlib.sha512(email.encode()).digest()[:64]).decode()
+            fake_recovery = base64.urlsafe_b64encode(
+                hashlib.sha512(email.encode()).digest()[:64]
+            ).decode()
             return {
                 "salt": base64.urlsafe_b64encode(fake_salt).decode(),
-                "recovery_wrapped_ak": fake_recovery
+                "recovery_wrapped_ak": fake_recovery,
             }
 
         keys = await self._user_repo.get_e2ee_keys(user.id)
@@ -138,7 +140,7 @@ class AuthService:
 
         return {
             "salt": base64.urlsafe_b64encode(keys.salt).decode(),
-            "recovery_wrapped_ak": keys.recovery_wrapped_ak
+            "recovery_wrapped_ak": keys.recovery_wrapped_ak,
         }
 
     async def login_verify(
@@ -172,19 +174,12 @@ class AuthService:
         if not keys:
             raise KeysNotFoundError()
 
-        # Check if this user should be promoted to admin
-        # (We promote the specific email to resolve the duplicate account ID issue)
-        if user.role != "admin":
-            from sqlalchemy import select
-            from app.models.user import User as UserModel
-            
-            # HARD-FIX: If the email matches the primary user, ensure they are admin
-            # This handles cases where multiple IDs might exist for the same email
-            if user.email.lower() == email.lower():
-                user.role = "admin"
-                await self._session.commit()
-                logger.info("FORCE PROMOTED user %s (ID: %s) to admin during login", 
-                            user.email, user.id)
+        # Promote to admin if email is in the ADMIN_EMAILS allowlist
+        admin_emails = {e.lower() for e in self._settings.admin_emails}
+        if user.email.lower() in admin_emails and user.role != "admin":
+            user.role = "admin"
+            await self._session.commit()
+            logger.info("Promoted %s to admin via ADMIN_EMAILS allowlist", user.email)
 
         token_pair = self._token_service.generate_token_pair(
             user_id=str(user.id),
@@ -210,9 +205,7 @@ class AuthService:
         Returns:
             New token pair dict.
         """
-        result = await self._token_service.rotate_refresh_token(
-            refresh_token
-        )
+        result = await self._token_service.rotate_refresh_token(refresh_token)
         return {
             "access_token": result["access_token"],
             "refresh_token": result["refresh_token"],
