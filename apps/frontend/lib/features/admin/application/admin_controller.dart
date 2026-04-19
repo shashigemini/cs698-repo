@@ -1,21 +1,17 @@
 import 'dart:typed_data';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../auth/application/auth_controller.dart';
-import '../../../core/constants/app_strings.dart';
+import '../../../features/auth/data/providers/auth_provider.dart';
 import '../data/providers/admin_repository_provider.dart';
 
 part 'admin_controller.g.dart';
 
-/// Provides whether the current authenticated user has admin
-/// privileges.
+/// Provides whether the current authenticated user has admin privileges.
+/// Role is extracted from the JWT access token at login time and persisted.
 @riverpod
 bool isAdmin(Ref ref) {
-  final currentUserId = ref.watch(authControllerProvider);
-  if (currentUserId == null || currentUserId == AppStrings.guestUserId) {
-    return false;
-  }
-  return true;
+  final repo = ref.watch(authRepositoryProvider);
+  return repo.currentRole == 'admin';
 }
 
 @Riverpod(keepAlive: true)
