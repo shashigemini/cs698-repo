@@ -14,6 +14,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/demo_mode_provider.dart';
 import '../../admin/application/admin_controller.dart';
 import '../../chat/domain/models/conversation.dart';
+import '../../../core/providers/file_helper_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -168,14 +169,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           .read(chatControllerProvider.notifier)
                           .exportConversation(conv.id);
                       if (data != null && context.mounted) {
-                        debugPrint('SettingsScreen: showing export snackbar');
-                        final messenger = ScaffoldMessenger.of(context);
-                        messenger.clearSnackBars();
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Conversation exported'),
-                          ),
+                        debugPrint('SettingsScreen: triggering file download');
+                        await ref.read(fileHelperProvider).downloadString(
+                          data,
+                          'conversation_${conv.id.substring(0, 8)}.md',
                         );
+
+                        if (context.mounted) {
+                          debugPrint('SettingsScreen: showing export snackbar');
+                          final messenger = ScaffoldMessenger.of(context);
+                          messenger.clearSnackBars();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Conversation exported'),
+                            ),
+                          );
+                        }
                       }
                     },
                   );
