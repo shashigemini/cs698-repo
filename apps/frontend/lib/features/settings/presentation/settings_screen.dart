@@ -145,6 +145,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   return _HistoryListItem(
                     key: ValueKey('history_item_${conv.id}'),
                     conversation: conv,
+                    isLoading: chatState.isLoading,
+                    onSelectConversation: (conversationId) async {
+                      if (chatState.isLoading) return;
+
+                      await ref
+                          .read(chatControllerProvider.notifier)
+                          .loadConversation(conversationId);
+                      if (context.mounted) {
+                        context.go('/home');
+                      }
+                    },
                     onDelete: () async {
                       debugPrint(
                         'SettingsScreen: onDelete triggered for ${conv.id}',
@@ -299,12 +310,16 @@ class _UsageMeter extends StatelessWidget {
 
 class _HistoryListItem extends StatelessWidget {
   final Conversation conversation;
+  final ValueChanged<String> onSelectConversation;
+  final bool isLoading;
   final VoidCallback onDelete;
   final VoidCallback onExport;
 
   const _HistoryListItem({
     super.key,
     required this.conversation,
+    required this.onSelectConversation,
+    this.isLoading = false,
     required this.onDelete,
     required this.onExport,
   });
@@ -319,6 +334,7 @@ class _HistoryListItem extends StatelessWidget {
         border: Border.all(color: Colors.white),
       ),
       child: ListTile(
+        enabled: !isLoading,
         title: Text(
           conversation.title,
           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
@@ -340,11 +356,19 @@ class _HistoryListItem extends StatelessWidget {
               onPressed: onDelete,
               tooltip: 'Delete',
             ),
+            if (isLoading) ...[
+              const SizedBox(width: 8),
+              const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
           ],
         ),
-        onTap: () {
-          // Placeholder for selecting conversation
-        },
+        onTap: isLoading
+            ? null
+            : () => onSelectConversation(conversation.id),
       ),
     );
   }
