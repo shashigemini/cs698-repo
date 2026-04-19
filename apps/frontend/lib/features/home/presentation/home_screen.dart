@@ -391,7 +391,7 @@ class _HomeDrawer extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.gray700,
+                          color: AppTheme.gray800,
                         ),
                       ),
                     ),
@@ -419,7 +419,7 @@ class _HomeDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Text(
                 'v1.0.0',
-                style: GoogleFonts.inter(color: AppTheme.gray700, fontSize: 12),
+                style: GoogleFonts.inter(color: AppTheme.gray800, fontSize: 12),
               ),
             ),
           ],
@@ -452,7 +452,7 @@ class _DrawerMenuItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
@@ -502,7 +502,7 @@ class _HistoryItem extends StatelessWidget {
             const Icon(
               LucideIcons.messageSquare,
               size: 14,
-              color: AppTheme.gray700,
+              color: AppTheme.gray800,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -559,7 +559,7 @@ class _EmptyStateView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               AppStrings.emptyStateSubtitle,
-              style: GoogleFonts.inter(fontSize: 16, color: AppTheme.gray700),
+              style: GoogleFonts.inter(fontSize: 16, color: AppTheme.gray800),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
@@ -723,7 +723,7 @@ class _AssistantMessageBubble extends StatelessWidget {
                 icon: const Icon(
                   LucideIcons.share2,
                   size: 18,
-                  color: AppTheme.gray700,
+                  color: AppTheme.gray800,
                 ),
                 tooltip: AppStrings.a11yShare,
                 onPressed: () {
@@ -839,12 +839,12 @@ class _AssistantMessageBubble extends StatelessWidget {
                   citation.title,
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.gray700,
+                    color: AppTheme.gray800,
                   ),
                 ),
                 Text(
                   'Page ${citation.page}',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.gray700),
+                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.gray800),
                 ),
                 const SizedBox(height: 16),
                 Flexible(
@@ -921,7 +921,7 @@ class _TypingDot extends StatelessWidget {
       width: 8,
       height: 8,
       decoration: const BoxDecoration(
-        color: AppTheme.gray700,
+        color: AppTheme.gray800,
         shape: BoxShape.circle,
       ),
     );
@@ -944,7 +944,7 @@ class _ChatInputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1005,7 +1005,7 @@ class _ChatInputBar extends StatelessWidget {
                   fontSize: 10,
                   color: value.text.length >= 2000
                       ? Colors.red
-                      : AppTheme.gray700,
+                      : AppTheme.gray800,
                 ),
               );
             },
