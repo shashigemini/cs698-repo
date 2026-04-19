@@ -76,18 +76,42 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
             break
 
 
+    # Ensure at least one admin exists (promote first user if none found)
+    async for session in database.get_session():
+        try:
+            from app.models.user import User
+            from sqlalchemy import select, update
+            
+            # Check if any admin exists
+            admin_check = await session.execute(select(User).where(User.role == "admin"))
+            if not admin_check.scalar_one_or_none():
+                # No admin found, promote the first user we find
+                first_user = await session.execute(select(User).order_by(User.created_at))
+                user_to_promote = first_user.scalar_one_or_none()
+                if user_to_promote:
+                    user_to_promote.role = "admin"
+                    await session.commit()
+                    logger.info("Auto-promoted first user %s to admin", user_to_promote.email)
+        except Exception as e:
+            logger.error("Failed to ensure admin exists: %s", e)
+        break
+
     # Initialize Qdrant Collection
     try:
         from qdrant_client import AsyncQdrantClient
         from qdrant_client.models import Distance, VectorParams
         
+        logger.info("Initializing Qdrant client at %s:%s", settings.qdrant_host, settings.qdrant_port)
         qclient = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
-        if not await qclient.collection_exists(settings.qdrant_collection):
+        
+        exists = await qclient.collection_exists(settings.qdrant_collection)
+        if not exists:
+            logger.info("Creating Qdrant collection: %s", settings.qdrant_collection)
             await qclient.create_collection(
                 collection_name=settings.qdrant_collection,
                 vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
             )
-            logger.info("Qdrant collection %s created", settings.qdrant_collection)
+            logger.info("Successfully created Qdrant collection: %s", settings.qdrant_collection)
         else:
             logger.info("Qdrant collection %s already exists", settings.qdrant_collection)
     except Exception as e:
