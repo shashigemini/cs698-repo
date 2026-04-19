@@ -84,10 +84,10 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
             
             # Check if any admin exists
             admin_check = await session.execute(select(User).where(User.role == "admin"))
-            if not admin_check.scalar_one_or_none():
+            if not admin_check.first():
                 # No admin found, promote the first user we find
-                first_user = await session.execute(select(User).order_by(User.created_at))
-                user_to_promote = first_user.scalar_one_or_none()
+                first_user_result = await session.execute(select(User).order_by(User.created_at))
+                user_to_promote = first_user_result.scalars().first()
                 if user_to_promote:
                     user_to_promote.role = "admin"
                     await session.commit()
