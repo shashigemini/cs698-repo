@@ -126,7 +126,7 @@ class HttpInterceptor extends Interceptor {
           AppLogger.i(
             'HttpInterceptor: Token refreshed successfully, retrying original request',
           );
-          // Retry original request with new token
+          // Retry original request with new token and refreshed CSRF token
           final tokens = await _storage.getTokens();
           final retryOptions = err.requestOptions.copyWith(
             headers: Map<String, dynamic>.from(err.requestOptions.headers),
@@ -135,6 +135,10 @@ class HttpInterceptor extends Interceptor {
           );
           if (tokens != null) {
             retryOptions.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
+          }
+          final freshCsrf = await _storage.getCsrfToken();
+          if (freshCsrf != null) {
+            retryOptions.headers['X-CSRF-Token'] = freshCsrf;
           }
           try {
             final response = await _dio.fetch<dynamic>(retryOptions);
@@ -199,6 +203,24 @@ class HttpInterceptor extends Interceptor {
 
       final newTokenPair = TokenPair.fromJson(data);
       await _storage.saveTokens(newTokenPair);
+
+      // CSRF tokens are keyed to sha256(access_token) on the backend.
+      // After token rotation the old CSRF token is invalid — fetch a new one.
+      try {
+        final csrfResponse = await refreshDio.get<Map<String, dynamic>>(
+          '/api/csrf',
+          options: Options(
+            headers: {'Authorization': 'Bearer ${newTokenPair.accessToken}'},
+          ),
+        );
+        final csrfToken = csrfResponse.data?['csrf_token'] as String?;
+        if (csrfToken != null) {
+          await _storage.saveCsrfToken(csrfToken);
+        }
+      } catch (_) {
+        // Non-fatal: CSRF not enforced in dev/staging environments
+      }
+
       return true;
     } catch (e) {
       AppLogger.e('HttpInterceptor: Refresh request failed', error: e);
