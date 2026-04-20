@@ -108,7 +108,7 @@ async def get_config(
     def mask_key(key: str) -> str:
         if not key or len(key) < 8:
             return "Not set"
-        return f"{key[:4]}...{key[-3:]}"  # type: ignore
+        return f"{key[:4]}...{key[-3:]}"
         
     return {
         "openai_api_key": mask_key(settings.openai_api_key),
