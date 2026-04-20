@@ -42,21 +42,26 @@ class Embedder:
         return vectors[0]
 
     async def embed_batch(
-        self, texts: list[str], *, batch_size: int = 100
+        self, texts: list[str], *, batch_size: int | None = None
     ) -> list[list[float]]:
         """Embed multiple texts with batching and retry.
 
         Args:
             texts: List of text strings to embed.
-            batch_size: Max texts per API call.
+            batch_size: Max texts per API call; defaults to settings value.
 
         Returns:
             List of embedding vectors in same order as input.
         """
+        if batch_size is None:
+            batch_size = self._settings.openai_embedding_batch_size
+        delay = self._settings.openai_embedding_batch_delay_ms / 1000.0
         all_embeddings = []
 
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
+        batches = [texts[i : i + batch_size] for i in range(0, len(texts), batch_size)]
+        for idx, batch in enumerate(batches):
+            if idx > 0 and delay > 0:
+                await asyncio.sleep(delay)
             embeddings = await self._embed_with_retry(batch)
             all_embeddings.extend(embeddings)
 

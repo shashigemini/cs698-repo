@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     openai_timeout_seconds: int = Field(default=30, ge=5)
     openai_max_retries: int = Field(default=3, ge=0)
+    openai_embedding_batch_size: int = Field(default=20, ge=1)
+    openai_embedding_batch_delay_ms: int = Field(default=500, ge=0)
 
     # --- Qdrant ---
     qdrant_host: str = Field(default="localhost")
