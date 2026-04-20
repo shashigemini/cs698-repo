@@ -3,9 +3,9 @@ import '../../../theme/app_theme.dart';
 
 /// A [Scaffold] wrapped in a gradient background.
 ///
-/// Picks [AppTheme.darkBackgroundGradient] in dark mode and
-/// [AppTheme.backgroundGradient] in light mode so the Celestial
-/// deep-indigo starfield base shows correctly.
+/// Applies [AppTheme.backgroundGradient] behind a transparent
+/// scaffold so screens get the branded purple-blue-teal gradient
+/// without repeating boilerplate.
 class GradientScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? appBar;
@@ -13,6 +13,7 @@ class GradientScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final Widget? drawer;
 
+  /// Creates a [GradientScaffold].
   const GradientScaffold({
     super.key,
     required this.body,
@@ -24,13 +25,8 @@ class GradientScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: BoxDecoration(
-        gradient: isDark
-            ? AppTheme.darkBackgroundGradient
-            : AppTheme.backgroundGradient,
-      ),
+      decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: appBar,
