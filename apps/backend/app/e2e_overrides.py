@@ -41,7 +41,7 @@ class StubLLMClient:
         history: list[dict],
     ) -> str:
         # A deterministic answer that references the retrieved context
-        titles = [p.get("title", "Unknown") for p in passages[:2]]  # type: ignore
+        titles = [p.get("title", "Unknown") for p in passages[:2]]
         context_str = ", ".join(titles) if titles else "no specific documents"
         
         return (
