@@ -15,7 +15,7 @@ class AuthRobot {
       find.byKey(const Key('register_password_field'));
   Finder get loginButton => find.byKey(const Key('login_button'));
   Finder get registerButton => find.byKey(const Key('register_button'));
-  Finder get guestButton => find.text('Continue as Guest');
+  Finder get guestButton => find.textContaining('Continue as guest');
   Finder get loginTab => find.text('Login');
   Finder get registerTab => find.text('Register');
   Finder get forgotPasswordButton =>

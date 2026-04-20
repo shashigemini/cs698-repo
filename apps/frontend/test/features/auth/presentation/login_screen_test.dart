@@ -25,6 +25,17 @@ void main() {
     );
   }
 
+  testWidgets('Login card renders gradient button without error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(createSubject());
+
+    // The primary CTA uses GradientButton with the Celestial primaryGradient.
+    // This test guards against paint regressions (e.g., null gradient stops).
+    expect(find.byKey(const Key('login_button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Login shows validation error if fields empty', (tester) async {
     await tester.pumpWidget(createSubject());
 
@@ -191,7 +202,7 @@ void main() {
 
     await tester.pumpWidget(createSubject());
 
-    final guestButton = find.text('Continue as Guest');
+    final guestButton = find.text('Continue as guest · 5 questions');
     await tester.ensureVisible(guestButton);
     await tester.tap(guestButton);
     await tester.pump(); // Start animation/loading

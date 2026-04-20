@@ -57,7 +57,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.gray900,
+                      color: AppTheme.inkLight,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -65,7 +65,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
                     'An unexpected error occurred. Please try restarting the app.',
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      color: AppTheme.gray700,
+                      color: AppTheme.mutedLight,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -77,7 +77,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.teal500,
+                      backgroundColor: AppTheme.accent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,

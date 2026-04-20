@@ -83,7 +83,7 @@ void main() {
 
       // Send a query to get an assistant response
       await tester.enterText(find.byType(TextField), 'Hello');
-      await tester.tap(find.byIcon(LucideIcons.send));
+      await tester.tap(find.byKey(const Key('chat_send_button')));
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
 
@@ -91,7 +91,7 @@ void main() {
       expect(find.byIcon(LucideIcons.share2), findsOneWidget);
 
       // Verify Citation exists
-      expect(find.textContaining('Mock Doc (p. 1)'), findsOneWidget);
+      expect(find.textContaining('Mock Doc'), findsOneWidget);
     });
 
     testWidgets('Tapping citation opens bottom sheet with passage', (
@@ -101,20 +101,43 @@ void main() {
 
       // Send query
       await tester.enterText(find.byType(TextField), 'Query');
-      await tester.tap(find.byIcon(LucideIcons.send));
+      await tester.tap(find.byKey(const Key('chat_send_button')));
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
 
       // Tap citation
-      await tester.tap(find.textContaining('Mock Doc (p. 1)'));
+      await tester.tap(find.textContaining('Mock Doc'));
       await tester.pumpAndSettle();
 
-      // Verify Bottom Sheet content
-      expect(find.text('Scripture Verse'), findsOneWidget);
+      // Verify Bottom Sheet content (redesigned sheet: SOURCE header + citation title + verse)
+      expect(find.text('Read full chapter'), findsOneWidget);
       expect(
         find.text('The soul is neither born, and nor does it die...'),
-        findsOneWidget,
+        findsAtLeastNWidgets(1),
       );
+    });
+
+    testWidgets('Drawer renders without overflow at narrow viewport', (
+      tester,
+    ) async {
+      // 480×800 is narrow enough to stress-test the drawer at reduced width
+      // while keeping the home screen renderably stable. The DrawerAction
+      // Flexible fix prevents text overflow in the drawer action row.
+      tester.view.physicalSize = const Size(480, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await pumpHome(tester);
+
+      // Open drawer at narrow width
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pumpAndSettle();
+
+      // Drawer should render: email header visible
+      expect(find.text('test@example.com'), findsOneWidget);
     });
 
     testWidgets('Tapping history item in drawer loads conversation', (
