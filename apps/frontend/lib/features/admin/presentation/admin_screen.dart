@@ -161,7 +161,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
           'Admin Dashboard',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.w600,
-            color: AppTheme.gray900,
+            color: AppTheme.inkLight,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -169,7 +169,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.arrowLeft,
-            color: AppTheme.gray900,
+            color: AppTheme.inkLight,
           ),
           onPressed: () => context.go('/home'),
         ),
@@ -201,7 +201,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
             children: [
               Icon(
                 LucideIcons.upload,
-                color: AppTheme.purple500,
+                color: AppTheme.accent2Soft,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -210,7 +210,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.gray900,
+                  color: AppTheme.inkLight,
                 ),
               ),
             ],
@@ -285,7 +285,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 _isUploading ? 'Uploading...' : 'Upload & Ingest',
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.purple500,
+                backgroundColor: AppTheme.accent2Soft,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -321,7 +321,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
         labelStyle: GoogleFonts.inter(fontSize: 13),
         hintStyle: GoogleFonts.inter(
           fontSize: 13,
-          color: AppTheme.gray700,
+          color: AppTheme.mutedLight,
         ),
       ),
       style: GoogleFonts.inter(fontSize: 14),
@@ -338,7 +338,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
             children: [
               Icon(
                 LucideIcons.fileText,
-                color: AppTheme.teal500,
+                color: AppTheme.accent,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -348,7 +348,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.gray900,
+                    color: AppTheme.inkLight,
                   ),
                 ),
               ),
@@ -356,7 +356,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 key: const ValueKey('refresh-docs'),
                 icon: Icon(
                   LucideIcons.refreshCw,
-                  color: AppTheme.gray700,
+                  color: AppTheme.mutedLight,
                   size: 20,
                 ),
                 onPressed: _loadDocuments,
@@ -377,7 +377,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: AppTheme.gray700,
+                    color: AppTheme.mutedLight,
                   ),
                 ),
               ),
@@ -410,7 +410,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
           color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: AppTheme.gray700.withValues(alpha: 0.2),
+            color: AppTheme.mutedLight.withValues(alpha: 0.2),
           ),
         ),
         child: Row(
@@ -426,7 +426,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.gray900,
+                      color: AppTheme.inkLight,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -434,7 +434,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                     status == 'ingested' ? '$chunks chunks' : status,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: AppTheme.gray700,
+                      color: AppTheme.mutedLight,
                     ),
                   ),
                 ],
@@ -493,19 +493,19 @@ class _FilePickerButton extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(
             color: hasFile
-                ? AppTheme.teal500
-                : AppTheme.gray700.withValues(alpha: 0.3),
+                ? AppTheme.accent
+                : AppTheme.mutedLight.withValues(alpha: 0.3),
             width: hasFile ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: hasFile ? AppTheme.teal500.withValues(alpha: 0.05) : null,
+          color: hasFile ? AppTheme.accent.withValues(alpha: 0.05) : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               hasFile ? LucideIcons.fileCheck : LucideIcons.file,
-              color: hasFile ? AppTheme.teal500 : AppTheme.gray700,
+              color: hasFile ? AppTheme.accent : AppTheme.mutedLight,
             ),
             const SizedBox(width: 12),
             if (hasFile) ...[
@@ -518,7 +518,7 @@ class _FilePickerButton extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppTheme.gray900,
+                        color: AppTheme.inkLight,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -527,7 +527,7 @@ class _FilePickerButton extends StatelessWidget {
                         fileSize!,
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: AppTheme.gray700,
+                          color: AppTheme.mutedLight,
                         ),
                       ),
                   ],
@@ -537,7 +537,7 @@ class _FilePickerButton extends StatelessWidget {
                 'Change',
                 style: GoogleFonts.inter(
                   fontSize: 13,
-                  color: AppTheme.purple500,
+                  color: AppTheme.accent2Soft,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -546,7 +546,7 @@ class _FilePickerButton extends StatelessWidget {
                 'Pick a PDF file (max 100 MB)',
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: AppTheme.gray700,
+                  color: AppTheme.mutedLight,
                 ),
               ),
           ],
@@ -579,7 +579,7 @@ class _StatusBadge extends StatelessWidget {
         color = Colors.red;
         icon = LucideIcons.circleX;
       default:
-        color = AppTheme.gray700;
+        color = AppTheme.mutedLight;
         icon = LucideIcons.circleQuestionMark;
     }
     return Container(

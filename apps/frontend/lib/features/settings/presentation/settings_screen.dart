@@ -85,11 +85,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(
           'Account Settings',
           style: GoogleFonts.outfit(
-            color: AppTheme.gray900,
+            color: AppTheme.inkLight,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppTheme.gray900),
+        iconTheme: const IconThemeData(color: AppTheme.inkLight),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -106,7 +106,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.gray900,
+                color: AppTheme.inkLight,
               ),
             ),
             const SizedBox(height: 16),
@@ -131,7 +131,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding: const EdgeInsets.all(32),
                   child: Text(
                     'No matching conversations found.',
-                    style: GoogleFonts.inter(color: AppTheme.gray700),
+                    style: GoogleFonts.inter(color: AppTheme.mutedLight),
                   ),
                 ),
               )
@@ -265,12 +265,12 @@ class _UsageMeter extends StatelessWidget {
                 'Monthly Usage',
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.gray900,
+                  color: AppTheme.inkLight,
                 ),
               ),
               Text(
                 '$usage / $limit queries',
-                style: GoogleFonts.inter(color: AppTheme.gray700, fontSize: 13),
+                style: GoogleFonts.inter(color: AppTheme.mutedLight, fontSize: 13),
               ),
             ],
           ),
@@ -280,16 +280,16 @@ class _UsageMeter extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 12,
-              backgroundColor: AppTheme.gray200,
+              backgroundColor: AppTheme.borderLight,
               valueColor: AlwaysStoppedAnimation<Color>(
-                percent > 0.8 ? Colors.orange : AppTheme.teal500,
+                percent > 0.8 ? Colors.orange : AppTheme.accent,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Usage resets on the 1st of every month.',
-            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.gray700),
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.mutedLight),
           ),
         ],
       ),
@@ -325,7 +325,7 @@ class _HistoryListItem extends StatelessWidget {
         ),
         subtitle: Text(
           'Created on ${conversation.createdAt.day}/${conversation.createdAt.month}/${conversation.createdAt.year}',
-          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.gray700),
+          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.mutedLight),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -406,7 +406,7 @@ class _DemoAdminPanelState extends ConsumerState<_DemoAdminPanel> {
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppTheme.gray900,
+            color: AppTheme.inkLight,
           ),
         ),
         const SizedBox(height: 16),

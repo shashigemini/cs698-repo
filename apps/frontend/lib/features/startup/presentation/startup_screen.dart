@@ -44,7 +44,7 @@ class _StartupScreenState extends State<StartupScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.teal500.withValues(alpha: 0.3),
+                        color: AppTheme.accent.withValues(alpha: 0.3),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -53,7 +53,7 @@ class _StartupScreenState extends State<StartupScreen> {
                   child: const Icon(
                     Icons.message,
                     size: 48,
-                    color: AppTheme.teal500,
+                    color: AppTheme.accent,
                   ),
                 )
                 .animate()
@@ -67,7 +67,7 @@ class _StartupScreenState extends State<StartupScreen> {
                   AppStrings.brandName,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.gray900,
+                    color: AppTheme.inkLight,
                   ),
                 )
                 .animate()
@@ -81,7 +81,7 @@ class _StartupScreenState extends State<StartupScreen> {
               AppStrings.tagline,
               style: Theme.of(
                 context,
-              ).textTheme.bodyLarge?.copyWith(color: AppTheme.gray700),
+              ).textTheme.bodyLarge?.copyWith(color: AppTheme.mutedLight),
             ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
 
             const SizedBox(height: 48),
@@ -92,7 +92,7 @@ class _StartupScreenState extends State<StartupScreen> {
               child: LinearProgressIndicator(
                 backgroundColor: Colors.white.withValues(alpha: 0.5),
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppTheme.teal500,
+                  AppTheme.accent,
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
