@@ -3,6 +3,7 @@
 import asyncio
 from typing import Optional
 
+import openai
 from openai import AsyncOpenAI
 
 from app.config import Settings
@@ -11,13 +12,19 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+_NON_RETRYABLE_ERRORS = (openai.AuthenticationError, openai.BadRequestError)
+
 
 class Embedder:
     """Generates embeddings via OpenAI's embedding API."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
+        # Disable SDK-level retries; _embed_with_retry owns retry logic
+        self._client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            max_retries=0,
+        )
         self._model = settings.openai_embedding_model
         self._max_retries = settings.openai_max_retries
 
@@ -67,18 +74,23 @@ class Embedder:
                 )
                 return [item.embedding for item in response.data]
             except Exception as e:
+                if isinstance(e, _NON_RETRYABLE_ERRORS):
+                    logger.error("Non-retryable OpenAI error during embedding: %s", e)
+                    raise RetrievalError("Failed to generate embeddings") from e
                 if attempt == self._max_retries:
                     logger.error(
-                        "Embedding failed after %d retries",
+                        "Embedding failed after %d retries: %s",
                         self._max_retries,
+                        e,
+                        exc_info=True,
                     )
                     raise RetrievalError(
                         "Failed to generate embeddings"
                     ) from e
                 wait = 2**attempt
                 logger.warning(
-                    "Embedding attempt %d failed, retrying in %ds",
-                    attempt + 1, wait,
+                    "Embedding attempt %d failed, retrying in %ds: %s",
+                    attempt + 1, wait, e,
                 )
                 await asyncio.sleep(wait)
 

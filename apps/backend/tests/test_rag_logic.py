@@ -1,6 +1,7 @@
 """Unit tests for RAG logic — chunking, embedding, and LLM interaction mocks."""
 
 import pytest
+import openai
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.rag.chunker import chunk_text, Chunk, _approx_tokens
 from app.rag.embedder import Embedder
@@ -54,13 +55,46 @@ class TestEmbedder:
         with patch("app.rag.embedder.AsyncOpenAI") as mock_openai:
             mock_client = mock_openai.return_value
             mock_client.embeddings.create = AsyncMock(side_effect=Exception("API Down"))
-            
+
             # Set max retries to 0 for fast test
             test_settings.openai_max_retries = 0
             embedder = Embedder(test_settings)
-            
+
             with pytest.raises(RetrievalError):
                 await embedder.embed_text("hello")
+
+    @pytest.mark.asyncio
+    async def test_embed_auth_error_no_retry(self, test_settings):
+        """AuthenticationError must raise immediately without retrying."""
+        with patch("app.rag.embedder.AsyncOpenAI") as mock_openai:
+            mock_client = mock_openai.return_value
+            auth_err = openai.AuthenticationError(
+                message="Invalid API key",
+                response=MagicMock(status_code=401, headers={}),
+                body={"error": {"message": "Invalid API key"}},
+            )
+            mock_client.embeddings.create = AsyncMock(side_effect=auth_err)
+
+            test_settings.openai_max_retries = 3
+            embedder = Embedder(test_settings)
+
+            with pytest.raises(RetrievalError):
+                await embedder.embed_text("hello")
+
+            # Must have called the API exactly once — no retries
+            assert mock_client.embeddings.create.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_embed_sdk_retries_disabled(self, test_settings):
+        """AsyncOpenAI client must be constructed with max_retries=0."""
+        with patch("app.rag.embedder.AsyncOpenAI") as mock_openai:
+            mock_client = mock_openai.return_value
+            mock_client.embeddings.create = AsyncMock(
+                return_value=MagicMock(data=[MagicMock(embedding=[0.0] * 1536)])
+            )
+            Embedder(test_settings)
+            _, kwargs = mock_openai.call_args
+            assert kwargs.get("max_retries") == 0
 
 class TestLLMClient:
     @pytest.mark.asyncio
