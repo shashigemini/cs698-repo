@@ -68,6 +68,8 @@ services:
       CSRF_SECRET: ${CSRF_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      MAX_REQUEST_BODY_BYTES: "104857600"
+      MAX_UPLOAD_BYTES: "104857600"
     depends_on:
       postgres:
         condition: service_healthy
