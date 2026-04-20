@@ -43,7 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       return await action().timeout(const Duration(seconds: 20));
     } on TimeoutException {
-      if (mounted) _showError('Request timed out. Check backend/network and try again.');
+      if (mounted) { _showError('Request timed out. Check backend/network and try again.'); }
     } on AppException catch (e) {
       if (mounted) _showError(e.message);
     } on DioException catch (e) {
