@@ -100,7 +100,7 @@ class Settings(BaseSettings):
 
     # --- Security ---
     csrf_secret: str = Field(default="change-me-in-production")
-    max_request_body_bytes: int = Field(default=1_048_576, ge=1024)
+    max_request_body_bytes: int = Field(default=104_857_600, ge=1024)
     max_query_length: int = Field(default=2000, ge=1)
     max_upload_bytes: int = Field(default=52_428_800)  # 50MB
 
