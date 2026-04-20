@@ -1,16 +1,14 @@
 name: deploy-aws-ec2
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/backend/**"
-      - "infra/**"
-      - ".github/workflows/deploy-aws-ec2.yml"
+  workflow_run:
+    workflows: ["run-backend-tests"]
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy-containerized-backend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
