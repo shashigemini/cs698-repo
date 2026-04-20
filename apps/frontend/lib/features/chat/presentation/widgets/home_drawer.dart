@@ -144,7 +144,7 @@ class HomeDrawer extends StatelessWidget {
                         ink: ink,
                         onTap: onSignIn,
                       )
-                    else
+                    else ...[
                       DrawerAction(
                         icon: LucideIcons.logOut,
                         label: AppStrings.drawerLogout,
@@ -155,6 +155,17 @@ class HomeDrawer extends StatelessWidget {
                         onTap: onLogout,
                         itemKey: const Key('logout_menu_item'),
                       ),
+                      const SizedBox(height: 8),
+                      DrawerAction(
+                        icon: LucideIcons.settings,
+                        label: AppStrings.drawerSettings,
+                        isDark: isDark,
+                        surface: surface,
+                        border: border,
+                        ink: ink,
+                        onTap: onSettings,
+                      ),
+                    ],
                     if (!isGuest && isAdmin) ...[
                       const SizedBox(height: 8),
                       DrawerAction(
